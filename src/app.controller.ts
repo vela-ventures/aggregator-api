@@ -38,4 +38,25 @@ export class AppController {
       },
     );
   }
+
+  @Get('best-route')
+  async getBestRoute() {
+    console.log('here');
+    return await this.swapService.getBestRoute(
+      {
+        name: 'AO',
+        symbol: 'AO',
+        denomination: 12,
+        processId: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
+      },
+      {
+        name: 'Wrapped AR',
+        symbol: 'wAR',
+        denomination: 12,
+        processId: 'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
+      },
+      100,
+      'OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78',
+    );
+  }
 }
