@@ -369,40 +369,6 @@ export class SwapAggregatorService {
   }
 
   /**
-   * Invalidates the pools cache
-   */
-  public invalidateCache(): void {
-    this.poolsCache = null;
-    this.lastPoolsFetchTime = 0;
-  }
-
-  /**
-   * Gets cache status
-   */
-  public getCacheStatus(): {
-    isCached: boolean;
-    lastFetchTime: number;
-    isExpired: boolean;
-  } {
-    const now = Date.now();
-    const isExpired =
-      now - this.lastPoolsFetchTime >= this.config.cacheExpirationMs;
-
-    return {
-      isCached: this.poolsCache !== null,
-      lastFetchTime: this.lastPoolsFetchTime,
-      isExpired,
-    };
-  }
-
-  /**
-   * Updates configuration
-   */
-  public updateConfig(newConfig: Partial<SwapAggregatorConfig>): void {
-    Object.assign(this.config, newConfig);
-  }
-
-  /**
    * Calculates swap estimate for Botega DEX
    */
   private async calculateBotegaSwapEstimate(
@@ -782,5 +748,39 @@ export class SwapAggregatorService {
       estimatedFee: bestRoute?.estimatedFee || 0,
       executionTime,
     };
+  }
+
+  /**
+   * Invalidates the pools cache
+   */
+  public invalidateCache(): void {
+    this.poolsCache = null;
+    this.lastPoolsFetchTime = 0;
+  }
+
+  /**
+   * Gets cache status
+   */
+  public getCacheStatus(): {
+    isCached: boolean;
+    lastFetchTime: number;
+    isExpired: boolean;
+  } {
+    const now = Date.now();
+    const isExpired =
+      now - this.lastPoolsFetchTime >= this.config.cacheExpirationMs;
+
+    return {
+      isCached: this.poolsCache !== null,
+      lastFetchTime: this.lastPoolsFetchTime,
+      isExpired,
+    };
+  }
+
+  /**
+   * Updates configuration
+   */
+  public updateConfig(newConfig: Partial<SwapAggregatorConfig>): void {
+    Object.assign(this.config, newConfig);
   }
 }

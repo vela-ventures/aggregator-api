@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swap Aggregator API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .endpoint {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .get { background-color: #28a745; }
+        .post { background-color: #007bff; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response {
+            background: #f1f1f1;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Swap Aggregator API Tester</h1>
+    
+    <div class="container">
+        <h2>API Configuration</h2>
+        <div class="form-group">
+            <label for="baseUrl">API Base URL:</label>
+            <input type="text" id="baseUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Pool Endpoints</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/pools</h3>
+            <p>Get all available pools from supported DEXes</p>
+            <button onclick="testGetPools()">Test Get Pools</button>
+            <button onclick="testGetPools(true)">Test Get Pools (Force Refresh)</button>
+            <div id="pools-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/pools/cache</h3>
+            <p>Get pools cache status</p>
+            <button onclick="testGetCacheStatus()">Test Cache Status</button>
+            <div id="cache-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method post">POST</span>/pools/refresh</h3>
+            <p>Force refresh pools cache</p>
+            <button onclick="testRefreshPools()">Test Refresh Pools</button>
+            <div id="refresh-response" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🛣️ Route Endpoints</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/routes</h3>
+            <p>Find all possible routes between two tokens</p>
+            <div class="grid">
+                <div>
+                    <label>From Token ID:</label>
+                    <input type="text" id="routes-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
+                </div>
+                <div>
+                    <label>To Token ID:</label>
+                    <input type="text" id="routes-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label>From Symbol (optional):</label>
+                    <input type="text" id="routes-from-symbol" value="AO" placeholder="AO">
+                </div>
+                <div>
+                    <label>To Symbol (optional):</label>
+                    <input type="text" id="routes-to-symbol" value="wAR" placeholder="wAR">
+                </div>
+            </div>
+            <button onclick="testGetRoutes()">Test Get Routes</button>
+            <div id="routes-response" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>💱 Quote Endpoints</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/quote</h3>
+            <p>Get the best swap quote</p>
+            <div class="grid">
+                <div>
+                    <label>From Token ID:</label>
+                    <input type="text" id="quote-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
+                </div>
+                <div>
+                    <label>To Token ID:</label>
+                    <input type="text" id="quote-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label>Amount:</label>
+                    <input type="number" id="quote-amount" value="100" placeholder="100">
+                </div>
+                <div>
+                    <label>User Address (optional):</label>
+                    <input type="text" id="quote-user" value="OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78" placeholder="User wallet address">
+                </div>
+            </div>
+            <button onclick="testGetQuote()">Test Get Quote</button>
+            <div id="quote-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/quote/quick</h3>
+            <p>Get quick quote (fastest response)</p>
+            <div class="grid">
+                <div>
+                    <label>From Token ID:</label>
+                    <input type="text" id="quick-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
+                </div>
+                <div>
+                    <label>To Token ID:</label>
+                    <input type="text" id="quick-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label>Amount:</label>
+                    <input type="number" id="quick-amount" value="100" placeholder="100">
+                </div>
+                <div>
+                    <label>User Address (optional):</label>
+                    <input type="text" id="quick-user" value="OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78" placeholder="User wallet address">
+                </div>
+            </div>
+            <button onclick="testGetQuickQuote()">Test Quick Quote</button>
+            <div id="quick-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method post">POST</span>/quote</h3>
+            <p>Get detailed swap quote with all routes</p>
+            <label>Request Body (JSON):</label>
+            <textarea id="detailed-quote-body" rows="12">{
+  "fromToken": {
+    "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
+    "symbol": "AO",
+    "name": "AO Token",
+    "denomination": 12
+  },
+  "toToken": {
+    "processId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
+    "symbol": "wAR",
+    "name": "Wrapped AR",
+    "denomination": 12
+  },
+  "amount": 1000,
+  "userAddress": "OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78"
+}</textarea>
+            <button onclick="testDetailedQuote()">Test Detailed Quote</button>
+            <div id="detailed-response" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>❤️ Health Check</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/</h3>
+            <p>API health check and status</p>
+            <button onclick="testHealth()">Test Health Check</button>
+            <div id="health-response" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const getBaseUrl = () => document.getElementById('baseUrl').value || 'http://localhost:3000';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.text();
+                let jsonData;
+                try {
+                    jsonData = JSON.parse(data);
+                } catch {
+                    jsonData = data;
+                }
+                
+                return {
+                    status: response.status,
+                    data: jsonData,
+                    success: response.ok
+                };
+            } catch (error) {
+                return {
+                    status: 0,
+                    data: { error: error.message },
+                    success: false
+                };
+            }
+        }
+
+        function displayResponse(elementId, response) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `response ${response.success ? 'success' : 'error'}`;
+            element.textContent = `Status: ${response.status}\n\n${JSON.stringify(response.data, null, 2)}`;
+        }
+
+        async function testHealth() {
+            const response = await makeRequest(`${getBaseUrl()}/`);
+            displayResponse('health-response', response);
+        }
+
+        async function testGetPools(refresh = false) {
+            const url = refresh ? `${getBaseUrl()}/pools?refresh=true` : `${getBaseUrl()}/pools`;
+            const response = await makeRequest(url);
+            displayResponse('pools-response', response);
+        }
+
+        async function testGetCacheStatus() {
+            const response = await makeRequest(`${getBaseUrl()}/pools/cache`);
+            displayResponse('cache-response', response);
+        }
+
+        async function testRefreshPools() {
+            const response = await makeRequest(`${getBaseUrl()}/pools/refresh`, { method: 'POST' });
+            displayResponse('refresh-response', response);
+        }
+
+        async function testGetRoutes() {
+            const fromToken = document.getElementById('routes-from').value;
+            const toToken = document.getElementById('routes-to').value;
+            const fromSymbol = document.getElementById('routes-from-symbol').value;
+            const toSymbol = document.getElementById('routes-to-symbol').value;
+            
+            let url = `${getBaseUrl()}/routes?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}`;
+            if (fromSymbol) url += `&fromSymbol=${encodeURIComponent(fromSymbol)}`;
+            if (toSymbol) url += `&toSymbol=${encodeURIComponent(toSymbol)}`;
+            
+            const response = await makeRequest(url);
+            displayResponse('routes-response', response);
+        }
+
+        async function testGetQuote() {
+            const fromToken = document.getElementById('quote-from').value;
+            const toToken = document.getElementById('quote-to').value;
+            const amount = document.getElementById('quote-amount').value;
+            const userAddress = document.getElementById('quote-user').value;
+            
+            let url = `${getBaseUrl()}/quote?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}&amount=${amount}`;
+            if (userAddress) url += `&userAddress=${encodeURIComponent(userAddress)}`;
+            
+            const response = await makeRequest(url);
+            displayResponse('quote-response', response);
+        }
+
+        async function testGetQuickQuote() {
+            const fromToken = document.getElementById('quick-from').value;
+            const toToken = document.getElementById('quick-to').value;
+            const amount = document.getElementById('quick-amount').value;
+            const userAddress = document.getElementById('quick-user').value;
+            
+            let url = `${getBaseUrl()}/quote/quick?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}&amount=${amount}`;
+            if (userAddress) url += `&userAddress=${encodeURIComponent(userAddress)}`;
+            
+            const response = await makeRequest(url);
+            displayResponse('quick-response', response);
+        }
+
+        async function testDetailedQuote() {
+            try {
+                const body = JSON.parse(document.getElementById('detailed-quote-body').value);
+                const response = await makeRequest(`${getBaseUrl()}/quote`, {
+                    method: 'POST',
+                    body: JSON.stringify(body)
+                });
+                displayResponse('detailed-response', response);
+            } catch (error) {
+                displayResponse('detailed-response', {
+                    status: 0,
+                    data: { error: 'Invalid JSON in request body: ' + error.message },
+                    success: false
+                });
+            }
+        }
+
+        // Test health on page load
+        window.onload = () => {
+            testHealth();
+        };
+    </script>
+</body>
+</html> 
