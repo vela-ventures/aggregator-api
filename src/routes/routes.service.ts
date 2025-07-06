@@ -50,6 +50,7 @@ export class RoutesService {
 
       let multiHopRoutes: Route[] = [];
       if (directRoutes.length === 0) {
+        console.log('looking for multihop');
         multiHopRoutes = this.findMultiHopRoutes(
           fromToken.processId,
           toToken.processId,
@@ -62,6 +63,7 @@ export class RoutesService {
         `Found ${allRoutes.length} routes for ${fromToken.symbol} -> ${toToken.symbol}`,
       );
 
+      console.log('about to return');
       return allRoutes;
     } catch (error) {
       this.logger.error('Failed to find routes:', error);
@@ -159,7 +161,8 @@ export class RoutesService {
         }
       }
     }
-
+    console.log('found multiphop ');
+    console.log(routes);
     return routes;
   }
 

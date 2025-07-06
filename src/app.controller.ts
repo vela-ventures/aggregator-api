@@ -99,68 +99,6 @@ export class AppController {
     }
   }
 
-  // ROUTES ENDPOINTS
-  @Get('routes')
-  @ApiOperation({ summary: 'Find all possible routes between two tokens' })
-  @ApiQuery({
-    name: 'fromToken',
-    required: true,
-    description: 'Source token process ID',
-  })
-  @ApiQuery({
-    name: 'toToken',
-    required: true,
-    description: 'Destination token process ID',
-  })
-  @ApiQuery({
-    name: 'fromSymbol',
-    required: false,
-    description: 'Source token symbol',
-  })
-  @ApiQuery({
-    name: 'toSymbol',
-    required: false,
-    description: 'Destination token symbol',
-  })
-  @ApiResponse({ status: 200, description: 'All available routes' })
-  async getRoutes(
-    @Query('fromToken') fromToken: string,
-    @Query('toToken') toToken: string,
-    @Query('fromSymbol') fromSymbol?: string,
-    @Query('toSymbol') toSymbol?: string,
-  ) {
-    if (!fromToken || !toToken) {
-      throw new HttpException(
-        'fromToken and toToken are required',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    try {
-      const fromTokenObj = {
-        processId: fromToken,
-        denomination: 12,
-        symbol: fromSymbol,
-      };
-
-      const toTokenObj = {
-        processId: toToken,
-        denomination: 12,
-        symbol: toSymbol,
-      };
-
-      return await this.swapService.findAllRoutes(fromTokenObj, toTokenObj);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-
-      throw new HttpException(
-        { message: 'Failed to find routes', error: errorMessage },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   // QUOTES ENDPOINTS
   @Get('quote')
   @ApiOperation({ summary: 'Get the best swap quote' })
