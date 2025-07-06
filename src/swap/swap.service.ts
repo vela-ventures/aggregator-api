@@ -14,16 +14,16 @@ export class SwapService implements OnModuleInit {
     // Initialize with default intermediate tokens - you can customize these
     const intermediateTokens: Token[] = [
       {
-        processId: 'INTERMEDIATE_TOKEN_1_PROCESS_ID', // Replace with actual
+        name: 'AO',
+        symbol: 'AO',
         denomination: 12,
-        symbol: 'wAR',
-        name: 'Wrapped AR',
+        processId: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
       },
       {
-        processId: 'INTERMEDIATE_TOKEN_2_PROCESS_ID', // Replace with actual
-        denomination: 6,
-        symbol: 'USDC',
-        name: 'USD Coin',
+        name: 'Wrapped AR',
+        symbol: 'wAR',
+        denomination: 12,
+        processId: 'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
       },
     ];
 

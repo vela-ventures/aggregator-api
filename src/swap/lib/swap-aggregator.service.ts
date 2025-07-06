@@ -90,7 +90,20 @@ const DEFAULT_CONFIG: Required<SwapAggregatorConfig> = {
   maxHops: 2,
   botegaProcessId: '3XBGLrygs11K63F_7mldWz4veNx6Llg6hI2yZs8LKHo',
   permaswapProcessId: '5G5_ftQT6f2OsmJ8EZ4-84eRcIMNEmUyH9aQSD85f9I',
-  intermediateTokens: [], // Should be provided by the consumer
+  intermediateTokens: [
+    {
+      name: 'AO',
+      symbol: 'AO',
+      denomination: 12,
+      processId: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
+    },
+    {
+      name: 'Wrapped AR',
+      symbol: 'wAR',
+      denomination: 12,
+      processId: 'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
+    },
+  ], // Should be provided by the consumer
 };
 
 // Custom Errors
@@ -691,7 +704,6 @@ export class SwapAggregatorService {
     try {
       // Find all possible routes
       const allRoutes = await this.findAllRoutes(fromToken, toToken);
-
       // Calculate estimates for all routes and sort by best output
       const routesWithEstimates = await this.calculateRouteEstimates(
         allRoutes,
