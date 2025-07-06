@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swap Aggregator API Tester</title>
+    <title>Swap Aggregator API Tester - Modular Controllers</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -90,10 +90,18 @@
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
+        .module-badge {
+            background: #6c757d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>🔄 Swap Aggregator API Tester</h1>
+    <h1>🔄 Swap Aggregator API Tester - Modular Controllers</h1>
     
     <div class="container">
         <h2>API Configuration</h2>
@@ -104,33 +112,26 @@
     </div>
 
     <div class="container">
-        <h2>📊 Pool Endpoints</h2>
+        <h2>📊 Pools Module <span class="module-badge">/pools</span></h2>
         
         <div class="endpoint">
             <h3><span class="method get">GET</span>/pools</h3>
             <p>Get all available pools from supported DEXes</p>
-            <button onclick="testGetPools()">Test Get Pools</button>
-            <button onclick="testGetPools(true)">Test Get Pools (Force Refresh)</button>
-            <div id="pools-response" class="response" style="display:none;"></div>
+            <button onclick="testPoolsGetPools()">Test Get Pools</button>
+            <button onclick="testPoolsGetPools(true)">Test Get Pools (Force Refresh)</button>
+            <div id="pools-get-response" class="response" style="display:none;"></div>
         </div>
 
         <div class="endpoint">
-            <h3><span class="method get">GET</span>/pools/cache</h3>
+            <h3><span class="method get">GET</span>/pools/status</h3>
             <p>Get pools cache status</p>
-            <button onclick="testGetCacheStatus()">Test Cache Status</button>
-            <div id="cache-response" class="response" style="display:none;"></div>
-        </div>
-
-        <div class="endpoint">
-            <h3><span class="method post">POST</span>/pools/refresh</h3>
-            <p>Force refresh pools cache</p>
-            <button onclick="testRefreshPools()">Test Refresh Pools</button>
-            <div id="refresh-response" class="response" style="display:none;"></div>
+            <button onclick="testPoolsStatus()">Test Pools Cache Status</button>
+            <div id="pools-status-response" class="response" style="display:none;"></div>
         </div>
     </div>
 
     <div class="container">
-        <h2>🛣️ Route Endpoints</h2>
+        <h2>🛣️ Routes Module <span class="module-badge">/routes</span></h2>
         
         <div class="endpoint">
             <h3><span class="method get">GET</span>/routes</h3>
@@ -155,73 +156,97 @@
                     <input type="text" id="routes-to-symbol" value="wAR" placeholder="wAR">
                 </div>
             </div>
-            <button onclick="testGetRoutes()">Test Get Routes</button>
+            <div class="grid">
+                <div>
+                    <label>From Denomination (optional):</label>
+                    <input type="number" id="routes-from-denomination" value="12" placeholder="12">
+                </div>
+                <div>
+                    <label>To Denomination (optional):</label>
+                    <input type="number" id="routes-to-denomination" value="12" placeholder="12">
+                </div>
+            </div>
+            <button onclick="testRoutesGetRoutes()">Test Get Routes</button>
             <div id="routes-response" class="response" style="display:none;"></div>
         </div>
     </div>
 
     <div class="container">
-        <h2>💱 Quote Endpoints</h2>
+        <h2>📈 Estimates Module <span class="module-badge">/estimates</span></h2>
         
         <div class="endpoint">
-            <h3><span class="method get">GET</span>/quote</h3>
-            <p>Get the best swap quote</p>
+            <h3><span class="method get">GET</span>/estimates/best</h3>
+            <p>Get the best swap route with estimate</p>
             <div class="grid">
                 <div>
                     <label>From Token ID:</label>
-                    <input type="text" id="quote-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
+                    <input type="text" id="estimates-best-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
                 </div>
                 <div>
                     <label>To Token ID:</label>
-                    <input type="text" id="quote-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
+                    <input type="text" id="estimates-best-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
                 </div>
             </div>
             <div class="grid">
                 <div>
                     <label>Amount:</label>
-                    <input type="number" id="quote-amount" value="100" placeholder="100">
+                    <input type="number" id="estimates-best-amount" value="100" placeholder="100">
                 </div>
                 <div>
                     <label>User Address (optional):</label>
-                    <input type="text" id="quote-user" value="OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78" placeholder="User wallet address">
+                    <input type="text" id="estimates-best-user" value="OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78" placeholder="User wallet address">
                 </div>
             </div>
-            <button onclick="testGetQuote()">Test Get Quote</button>
-            <div id="quote-response" class="response" style="display:none;"></div>
+            <div class="grid">
+                <div>
+                    <label>From Symbol (optional):</label>
+                    <input type="text" id="estimates-best-from-symbol" value="AO" placeholder="AO">
+                </div>
+                <div>
+                    <label>To Symbol (optional):</label>
+                    <input type="text" id="estimates-best-to-symbol" value="wAR" placeholder="wAR">
+                </div>
+            </div>
+            <button onclick="testEstimatesBest()">Test Best Route Estimate</button>
+            <div id="estimates-best-response" class="response" style="display:none;"></div>
         </div>
 
         <div class="endpoint">
-            <h3><span class="method get">GET</span>/quote/quick</h3>
-            <p>Get quick quote (fastest response)</p>
+            <h3><span class="method get">GET</span>/estimates/all</h3>
+            <p>Get all routes with estimates</p>
             <div class="grid">
                 <div>
                     <label>From Token ID:</label>
-                    <input type="text" id="quick-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
+                    <input type="text" id="estimates-all-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
                 </div>
                 <div>
                     <label>To Token ID:</label>
-                    <input type="text" id="quick-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
+                    <input type="text" id="estimates-all-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
                 </div>
             </div>
             <div class="grid">
                 <div>
                     <label>Amount:</label>
-                    <input type="number" id="quick-amount" value="100" placeholder="100">
+                    <input type="number" id="estimates-all-amount" value="100" placeholder="100">
                 </div>
                 <div>
                     <label>User Address (optional):</label>
-                    <input type="text" id="quick-user" value="OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78" placeholder="User wallet address">
+                    <input type="text" id="estimates-all-user" value="OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78" placeholder="User wallet address">
                 </div>
             </div>
-            <button onclick="testGetQuickQuote()">Test Quick Quote</button>
-            <div id="quick-response" class="response" style="display:none;"></div>
+            <button onclick="testEstimatesAll()">Test All Routes with Estimates</button>
+            <div id="estimates-all-response" class="response" style="display:none;"></div>
         </div>
+    </div>
 
+    <div class="container">
+        <h2>💱 Swap Module <span class="module-badge">/swap</span></h2>
+        
         <div class="endpoint">
-            <h3><span class="method post">POST</span>/quote</h3>
-            <p>Get detailed swap quote with all routes</p>
+            <h3><span class="method post">POST</span>/swap/quote</h3>
+            <p>Get comprehensive swap quote with all routes</p>
             <label>Request Body (JSON):</label>
-            <textarea id="detailed-quote-body" rows="12">{
+            <textarea id="swap-quote-body" rows="12">{
   "fromToken": {
     "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
     "symbol": "AO",
@@ -237,19 +262,75 @@
   "amount": 1000,
   "userAddress": "OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78"
 }</textarea>
-            <button onclick="testDetailedQuote()">Test Detailed Quote</button>
-            <div id="detailed-response" class="response" style="display:none;"></div>
+            <button onclick="testSwapQuote()">Test Swap Quote</button>
+            <div id="swap-quote-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/swap/quote/quick</h3>
+            <p>Get quick quote (fastest response)</p>
+            <div class="grid">
+                <div>
+                    <label>From Token ID:</label>
+                    <input type="text" id="swap-quick-from" value="0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc" placeholder="AO Token Process ID">
+                </div>
+                <div>
+                    <label>To Token ID:</label>
+                    <input type="text" id="swap-quick-to" value="xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10" placeholder="wAR Token Process ID">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label>Amount:</label>
+                    <input type="number" id="swap-quick-amount" value="100" placeholder="100">
+                </div>
+                <div>
+                    <label>User Address (optional):</label>
+                    <input type="text" id="swap-quick-user" value="OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78" placeholder="User wallet address">
+                </div>
+            </div>
+            <button onclick="testSwapQuickQuote()">Test Quick Quote</button>
+            <div id="swap-quick-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/swap/pools</h3>
+            <p>Get all available pools from swap module</p>
+            <button onclick="testSwapPools()">Test Swap Pools</button>
+            <button onclick="testSwapPools(true)">Test Swap Pools (Force Refresh)</button>
+            <div id="swap-pools-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/swap/cache/status</h3>
+            <p>Get cache status from swap module</p>
+            <button onclick="testSwapCacheStatus()">Test Swap Cache Status</button>
+            <div id="swap-cache-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method post">POST</span>/swap/cache/invalidate</h3>
+            <p>Invalidate cache from swap module</p>
+            <button onclick="testSwapCacheInvalidate()">Test Cache Invalidate</button>
+            <div id="swap-invalidate-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="endpoint">
+            <h3><span class="method get">GET</span>/swap/health</h3>
+            <p>Health check for swap module</p>
+            <button onclick="testSwapHealth()">Test Swap Health</button>
+            <div id="swap-health-response" class="response" style="display:none;"></div>
         </div>
     </div>
 
     <div class="container">
-        <h2>❤️ Health Check</h2>
+        <h2>❤️ Main API Health</h2>
         
         <div class="endpoint">
             <h3><span class="method get">GET</span>/</h3>
-            <p>API health check and status</p>
-            <button onclick="testHealth()">Test Health Check</button>
-            <div id="health-response" class="response" style="display:none;"></div>
+            <p>Main API health check and status</p>
+            <button onclick="testMainHealth()">Test Main Health Check</button>
+            <div id="main-health-response" class="response" style="display:none;"></div>
         </div>
     </div>
 
@@ -295,77 +376,85 @@
             element.textContent = `Status: ${response.status}\n\n${JSON.stringify(response.data, null, 2)}`;
         }
 
-        async function testHealth() {
+        // Main Health
+        async function testMainHealth() {
             const response = await makeRequest(`${getBaseUrl()}/`);
-            displayResponse('health-response', response);
+            displayResponse('main-health-response', response);
         }
 
-        async function testGetPools(refresh = false) {
+        // Pools Module
+        async function testPoolsGetPools(refresh = false) {
             const url = refresh ? `${getBaseUrl()}/pools?refresh=true` : `${getBaseUrl()}/pools`;
             const response = await makeRequest(url);
-            displayResponse('pools-response', response);
+            displayResponse('pools-get-response', response);
         }
 
-        async function testGetCacheStatus() {
-            const response = await makeRequest(`${getBaseUrl()}/pools/cache`);
-            displayResponse('cache-response', response);
+        async function testPoolsStatus() {
+            const response = await makeRequest(`${getBaseUrl()}/pools/status`);
+            displayResponse('pools-status-response', response);
         }
 
-        async function testRefreshPools() {
-            const response = await makeRequest(`${getBaseUrl()}/pools/refresh`, { method: 'POST' });
-            displayResponse('refresh-response', response);
-        }
-
-        async function testGetRoutes() {
+        // Routes Module
+        async function testRoutesGetRoutes() {
             const fromToken = document.getElementById('routes-from').value;
             const toToken = document.getElementById('routes-to').value;
             const fromSymbol = document.getElementById('routes-from-symbol').value;
             const toSymbol = document.getElementById('routes-to-symbol').value;
+            const fromDenomination = document.getElementById('routes-from-denomination').value;
+            const toDenomination = document.getElementById('routes-to-denomination').value;
             
             let url = `${getBaseUrl()}/routes?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}`;
             if (fromSymbol) url += `&fromSymbol=${encodeURIComponent(fromSymbol)}`;
             if (toSymbol) url += `&toSymbol=${encodeURIComponent(toSymbol)}`;
+            if (fromDenomination) url += `&fromDenomination=${encodeURIComponent(fromDenomination)}`;
+            if (toDenomination) url += `&toDenomination=${encodeURIComponent(toDenomination)}`;
             
             const response = await makeRequest(url);
             displayResponse('routes-response', response);
         }
 
-        async function testGetQuote() {
-            const fromToken = document.getElementById('quote-from').value;
-            const toToken = document.getElementById('quote-to').value;
-            const amount = document.getElementById('quote-amount').value;
-            const userAddress = document.getElementById('quote-user').value;
+        // Estimates Module
+        async function testEstimatesBest() {
+            const fromToken = document.getElementById('estimates-best-from').value;
+            const toToken = document.getElementById('estimates-best-to').value;
+            const amount = document.getElementById('estimates-best-amount').value;
+            const userAddress = document.getElementById('estimates-best-user').value;
+            const fromSymbol = document.getElementById('estimates-best-from-symbol').value;
+            const toSymbol = document.getElementById('estimates-best-to-symbol').value;
             
-            let url = `${getBaseUrl()}/quote?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}&amount=${amount}`;
+            let url = `${getBaseUrl()}/estimates/best?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}&amount=${amount}`;
+            if (userAddress) url += `&userAddress=${encodeURIComponent(userAddress)}`;
+            if (fromSymbol) url += `&fromSymbol=${encodeURIComponent(fromSymbol)}`;
+            if (toSymbol) url += `&toSymbol=${encodeURIComponent(toSymbol)}`;
+            
+            const response = await makeRequest(url);
+            displayResponse('estimates-best-response', response);
+        }
+
+        async function testEstimatesAll() {
+            const fromToken = document.getElementById('estimates-all-from').value;
+            const toToken = document.getElementById('estimates-all-to').value;
+            const amount = document.getElementById('estimates-all-amount').value;
+            const userAddress = document.getElementById('estimates-all-user').value;
+            
+            let url = `${getBaseUrl()}/estimates/all?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}&amount=${amount}`;
             if (userAddress) url += `&userAddress=${encodeURIComponent(userAddress)}`;
             
             const response = await makeRequest(url);
-            displayResponse('quote-response', response);
+            displayResponse('estimates-all-response', response);
         }
 
-        async function testGetQuickQuote() {
-            const fromToken = document.getElementById('quick-from').value;
-            const toToken = document.getElementById('quick-to').value;
-            const amount = document.getElementById('quick-amount').value;
-            const userAddress = document.getElementById('quick-user').value;
-            
-            let url = `${getBaseUrl()}/quote/quick?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}&amount=${amount}`;
-            if (userAddress) url += `&userAddress=${encodeURIComponent(userAddress)}`;
-            
-            const response = await makeRequest(url);
-            displayResponse('quick-response', response);
-        }
-
-        async function testDetailedQuote() {
+        // Swap Module
+        async function testSwapQuote() {
             try {
-                const body = JSON.parse(document.getElementById('detailed-quote-body').value);
-                const response = await makeRequest(`${getBaseUrl()}/quote`, {
+                const body = JSON.parse(document.getElementById('swap-quote-body').value);
+                const response = await makeRequest(`${getBaseUrl()}/swap/quote`, {
                     method: 'POST',
                     body: JSON.stringify(body)
                 });
-                displayResponse('detailed-response', response);
+                displayResponse('swap-quote-response', response);
             } catch (error) {
-                displayResponse('detailed-response', {
+                displayResponse('swap-quote-response', {
                     status: 0,
                     data: { error: 'Invalid JSON in request body: ' + error.message },
                     success: false
@@ -373,9 +462,43 @@
             }
         }
 
-        // Test health on page load
+        async function testSwapQuickQuote() {
+            const fromTokenId = document.getElementById('swap-quick-from').value;
+            const toTokenId = document.getElementById('swap-quick-to').value;
+            const amount = document.getElementById('swap-quick-amount').value;
+            const userAddress = document.getElementById('swap-quick-user').value;
+            
+            let url = `${getBaseUrl()}/swap/quote/quick?fromTokenId=${encodeURIComponent(fromTokenId)}&toTokenId=${encodeURIComponent(toTokenId)}&amount=${amount}`;
+            if (userAddress) url += `&userAddress=${encodeURIComponent(userAddress)}`;
+            
+            const response = await makeRequest(url);
+            displayResponse('swap-quick-response', response);
+        }
+
+        async function testSwapPools(refresh = false) {
+            const url = refresh ? `${getBaseUrl()}/swap/pools?refresh=true` : `${getBaseUrl()}/swap/pools`;
+            const response = await makeRequest(url);
+            displayResponse('swap-pools-response', response);
+        }
+
+        async function testSwapCacheStatus() {
+            const response = await makeRequest(`${getBaseUrl()}/swap/cache/status`);
+            displayResponse('swap-cache-response', response);
+        }
+
+        async function testSwapCacheInvalidate() {
+            const response = await makeRequest(`${getBaseUrl()}/swap/cache/invalidate`, { method: 'POST' });
+            displayResponse('swap-invalidate-response', response);
+        }
+
+        async function testSwapHealth() {
+            const response = await makeRequest(`${getBaseUrl()}/swap/health`);
+            displayResponse('swap-health-response', response);
+        }
+
+        // Test main health on page load
         window.onload = () => {
-            testHealth();
+            testMainHealth();
         };
     </script>
 </body>
