@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { dryrun } from '@permaweb/aoconnect';
 import type { Route, Token } from '../routes/routes.service';
+import { DryrunResult } from 'libs/types';
 
 export interface RouteWithEstimate extends Route {
   estimatedOutput?: number;
@@ -150,8 +151,7 @@ export class EstimatesService {
       tags,
     });
 
-    const tagArray: { name: string; value: string }[] =
-      result.Messages[0]?.Tags;
+    const tagArray = (result as DryrunResult).Messages[0]?.Tags || [];
     const responseTags = Object.fromEntries(
       tagArray.map((tag) => [tag.name, tag.value]),
     );
@@ -197,14 +197,16 @@ export class EstimatesService {
   }
 
   private estimateSwap(
-    response: any,
+    response: DryrunResult,
     inputAmount: number,
     inputTokenId: string,
   ): { outputAmount: number; exchangeRate: number; fee: number } {
     const tags: Record<string, string> = {};
-    response.Messages[0].Tags.forEach((tag: any) => {
-      tags[tag.name] = tag.value;
-    });
+    response.Messages[0].Tags.forEach(
+      (tag: { name: string; value: string }) => {
+        tags[tag.name] = tag.value;
+      },
+    );
 
     const reserveX = Number(tags.PX);
     const reserveY = Number(tags.PY);

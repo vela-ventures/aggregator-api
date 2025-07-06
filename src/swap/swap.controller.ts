@@ -57,10 +57,12 @@ export class SwapController {
         dto.userAddress,
       );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       throw new HttpException(
         {
           message: 'Failed to get swap quote',
-          error: error.message,
+          error: errorMessage,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -101,10 +103,13 @@ export class SwapController {
         dto.userAddress,
       );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
         {
           message: 'Failed to get quick quote',
-          error: error.message,
+          error: errorMessage,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -124,10 +129,13 @@ export class SwapController {
     try {
       return await this.swapService.getAllPools(refresh || false);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
         {
           message: 'Failed to get pools',
-          error: error.message,
+          error: errorMessage,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -179,10 +187,13 @@ export class SwapController {
         cache: cacheStatus,
       };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
         {
           status: 'unhealthy',
-          error: error.message,
+          error: errorMessage,
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );

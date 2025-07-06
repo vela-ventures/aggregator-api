@@ -63,8 +63,11 @@ export class AppController {
     try {
       return await this.swapService.getAllPools(refresh || false);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
-        { message: 'Failed to fetch pools', error: error.message },
+        { message: 'Failed to fetch pools', error: errorMessage },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -86,8 +89,11 @@ export class AppController {
       this.swapService.invalidateCache();
       return { message: 'Pools cache refreshed successfully' };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
-        { message: 'Failed to refresh pools', error: error.message },
+        { message: 'Failed to refresh pools', error: errorMessage },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -145,8 +151,11 @@ export class AppController {
 
       return await this.swapService.findAllRoutes(fromTokenObj, toTokenObj);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
-        { message: 'Failed to find routes', error: error.message },
+        { message: 'Failed to find routes', error: errorMessage },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -203,8 +212,11 @@ export class AppController {
         userAddress,
       );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
-        { message: 'Failed to get quote', error: error.message },
+        { message: 'Failed to get quote', error: errorMessage },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -260,8 +272,11 @@ export class AppController {
         body.userAddress,
       );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
-        { message: 'Failed to get detailed quote', error: error.message },
+        { message: 'Failed to get detailed quote', error: errorMessage },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -317,8 +332,11 @@ export class AppController {
         userAddress,
       );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HttpException(
-        { message: 'Failed to get quick quote', error: error.message },
+        { message: 'Failed to get quick quote', error: errorMessage },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

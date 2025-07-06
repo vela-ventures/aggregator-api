@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { dryrun } from '@permaweb/aoconnect';
+import { DryrunResult } from 'libs/types';
 
 interface BotegaPool {
   poolId: string;
@@ -91,19 +92,21 @@ export class PoolsService {
         ],
       });
 
-      const poolsData = result.Messages[0]?.Data;
+      const poolsData = (result as DryrunResult).Messages[0]?.Data;
       if (!poolsData) return [];
 
       const pools: BotegaPool[] = [];
-      Object.entries(JSON.parse(poolsData)).forEach(([poolId, tokens]) => {
-        if (Array.isArray(tokens) && tokens.length === 2) {
-          pools.push({
-            poolId,
-            tokenA: tokens[0],
-            tokenB: tokens[1],
-          });
-        }
-      });
+      Object.entries(JSON.parse(poolsData)).forEach(
+        ([poolId, tokens]: [poolId: string, tokens: string[]]) => {
+          if (Array.isArray(tokens) && tokens.length === 2) {
+            pools.push({
+              poolId,
+              tokenA: tokens[0],
+              tokenB: tokens[1],
+            });
+          }
+        },
+      );
 
       return pools;
     } catch (error) {
@@ -124,21 +127,23 @@ export class PoolsService {
         ],
       });
 
-      const poolsData = result.Messages[0]?.Data;
+      const poolsData = (result as DryrunResult).Messages[0]?.Data;
       if (!poolsData) return [];
 
       const pools: PermaswapPool[] = [];
 
-      Object.values(JSON.parse(poolsData)).forEach((pool: any) => {
-        if (pool.X && pool.Y && pool.Process && pool.Fee) {
-          pools.push({
-            process: pool.Process,
-            x: pool.X,
-            y: pool.Y,
-            fee: pool.Fee,
-          });
-        }
-      });
+      Object.values(JSON.parse(poolsData)).forEach(
+        (pool: { X: string; Y: string; Process: string; Fee: string }) => {
+          if (pool.X && pool.Y && pool.Process && pool.Fee) {
+            pools.push({
+              process: pool.Process,
+              x: pool.X,
+              y: pool.Y,
+              fee: pool.Fee,
+            });
+          }
+        },
+      );
 
       return pools;
     } catch (error) {
