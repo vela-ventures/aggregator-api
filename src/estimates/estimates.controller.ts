@@ -1,10 +1,14 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
 import type { Token } from '../routes/routes.service';
-import { SwapAggregatorService } from '../swap/lib/swap-aggregator.service';
+import { RoutesService } from '../routes/routes.service';
+import { EstimatesService } from './estimates.service';
 
 @Controller('estimates')
 export class EstimatesController {
-  constructor(private readonly swapAggregatorService: SwapAggregatorService) {}
+  constructor(
+    private readonly routesService: RoutesService,
+    private readonly estimatesService: EstimatesService,
+  ) {}
 
   @Get('best')
   async getBestRoute(
@@ -35,12 +39,20 @@ export class EstimatesController {
       symbol: toSymbol,
     };
 
-    return await this.swapAggregatorService.getBestRoute(
+    // Find all routes first
+    const routes = await this.routesService.findAllRoutes(fromToken, toToken);
+    
+    // Calculate estimates for all routes
+    const routesWithEstimates = await this.estimatesService.calculateRouteEstimates(
+      routes,
       fromToken,
       toToken,
       parseFloat(amount),
       userAddress,
     );
+
+    // Return the best route
+    return this.estimatesService.getBestRoute(routesWithEstimates);
   }
 
   @Get('all')
@@ -73,13 +85,10 @@ export class EstimatesController {
     };
 
     // Find all routes first
-    const routes = await this.swapAggregatorService.findAllRoutes(
-      fromToken,
-      toToken,
-    );
+    const routes = await this.routesService.findAllRoutes(fromToken, toToken);
 
     // Then calculate estimates for all routes
-    return await this.swapAggregatorService.calculateRouteEstimates(
+    return await this.estimatesService.calculateRouteEstimates(
       routes,
       fromToken,
       toToken,

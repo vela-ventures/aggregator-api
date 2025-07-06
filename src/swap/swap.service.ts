@@ -1,48 +1,30 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import {
-  SwapAggregatorService,
+import { RoutesService } from '../routes/routes.service';
+import { EstimatesService } from '../estimates/estimates.service';
+import { PoolsService } from '../pools/pools.service';
+import type {
   Token,
   SwapQuoteResponse,
-} from './lib/swap-aggregator.service';
+  QuickQuoteResponse,
+  RouteWithEstimate,
+} from '../shared/types';
 
 @Injectable()
 export class SwapService implements OnModuleInit {
   private readonly logger = new Logger(SwapService.name);
-  private aggregatorService: SwapAggregatorService;
 
-  constructor() {
-    // Initialize with default intermediate tokens - you can customize these
-    const intermediateTokens: Token[] = [
-      {
-        name: 'AO',
-        symbol: 'AO',
-        denomination: 12,
-        processId: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
-      },
-      {
-        name: 'Wrapped AR',
-        symbol: 'wAR',
-        denomination: 12,
-        processId: 'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
-      },
-    ];
-
-    this.aggregatorService = new SwapAggregatorService({
-      cacheExpirationMs: 5 * 60 * 1000, // 5 minutes
-      maxHops: 2,
-      intermediateTokens,
-      // You can override process IDs if needed
-      // botegaProcessId: 'custom_botega_process_id',
-      // permaswapProcessId: 'custom_permaswap_process_id',
-    });
-  }
+  constructor(
+    private readonly routesService: RoutesService,
+    private readonly estimatesService: EstimatesService,
+    private readonly poolsService: PoolsService,
+  ) {}
 
   async onModuleInit() {
     this.logger.log('SwapService initialized');
 
     // Pre-warm the cache on startup
     try {
-      await this.aggregatorService.getAllPools();
+      await this.poolsService.getAllPools();
       this.logger.log('Pool cache pre-warmed successfully');
     } catch (error) {
       this.logger.warn('Failed to pre-warm pool cache:', error);
@@ -58,13 +40,38 @@ export class SwapService implements OnModuleInit {
     amount: number,
     userAddress?: string,
   ): Promise<SwapQuoteResponse> {
+    const startTime = Date.now();
+
     try {
-      return await this.aggregatorService.getSwapQuote(
+      // Find all possible routes
+      const allRoutes = await this.routesService.findAllRoutes(
         fromToken,
         toToken,
-        amount,
-        userAddress,
       );
+
+      // Calculate estimates for all routes and sort by best output
+      const routesWithEstimates =
+        await this.estimatesService.calculateRouteEstimates(
+          allRoutes,
+          fromToken,
+          toToken,
+          amount,
+          userAddress,
+        );
+
+      const executionTime = Date.now() - startTime;
+
+      return {
+        fromToken,
+        toToken,
+        inputAmount: amount,
+        routes: routesWithEstimates,
+        bestRoute:
+          routesWithEstimates.length > 0 ? routesWithEstimates[0] : null,
+        totalRoutesFound: allRoutes.length,
+        validRoutesWithEstimates: routesWithEstimates.length,
+        executionTime,
+      };
     } catch (error) {
       this.logger.error('Failed to get swap quote:', error);
       throw error;
@@ -79,14 +86,33 @@ export class SwapService implements OnModuleInit {
     toToken: Token,
     amount: number,
     userAddress?: string,
-  ) {
+  ): Promise<QuickQuoteResponse> {
+    const startTime = Date.now();
+
     try {
-      return await this.aggregatorService.getQuickQuote(
-        fromToken,
-        toToken,
-        amount,
-        userAddress,
-      );
+      // Find all routes first
+      const routes = await this.routesService.findAllRoutes(fromToken, toToken);
+
+      // Calculate estimates for all routes
+      const routesWithEstimates =
+        await this.estimatesService.calculateRouteEstimates(
+          routes,
+          fromToken,
+          toToken,
+          amount,
+          userAddress,
+        );
+
+      // Get the best route
+      const bestRoute = this.estimatesService.getBestRoute(routesWithEstimates);
+      const executionTime = Date.now() - startTime;
+
+      return {
+        bestRoute,
+        estimatedOutput: bestRoute?.estimatedOutput || 0,
+        estimatedFee: bestRoute?.estimatedFee || 0,
+        executionTime,
+      };
     } catch (error) {
       this.logger.error('Failed to get quick quote:', error);
       throw error;
@@ -98,7 +124,7 @@ export class SwapService implements OnModuleInit {
    */
   async getAllPools(forceRefresh = false) {
     try {
-      return await this.aggregatorService.getAllPools(forceRefresh);
+      return await this.poolsService.getAllPools(forceRefresh);
     } catch (error) {
       this.logger.error('Failed to get all pools:', error);
       throw error;
@@ -109,22 +135,14 @@ export class SwapService implements OnModuleInit {
    * Get cache status
    */
   getCacheStatus() {
-    return this.aggregatorService.getCacheStatus();
+    return this.poolsService.getCacheStatus();
   }
 
   /**
    * Invalidate cache manually
    */
   invalidateCache() {
-    this.aggregatorService.invalidateCache();
+    this.poolsService.invalidateCache();
     this.logger.log('Pool cache invalidated');
-  }
-
-  /**
-   * Update configuration
-   */
-  updateConfig(config: any) {
-    this.aggregatorService.updateConfig(config);
-    this.logger.log('Aggregator configuration updated');
   }
 }

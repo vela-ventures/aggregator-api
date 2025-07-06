@@ -1,14 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { dryrun } from '@permaweb/aoconnect';
 import type { Route, Token } from '../routes/routes.service';
+import type { RouteWithEstimate } from '../shared/types';
+import { convertToDenomination, convertFromDenomination } from '../shared/types';
 import { DryrunResult } from 'libs/types';
-
-export interface RouteWithEstimate extends Route {
-  estimatedOutput?: number;
-  estimatedFee?: number;
-  intermediateOutput?: number;
-  error?: string;
-}
 
 interface SwapEstimate {
   fee: number;
@@ -248,13 +243,13 @@ export class EstimatesService {
   }
 
   private convertToDenomination(amount: number, denomination: number): string {
-    return Math.floor(amount * Math.pow(10, denomination)).toString();
+    return convertToDenomination(amount, denomination);
   }
 
   private convertFromDenomination(
     amount: number,
     denomination: number,
   ): number {
-    return amount / Math.pow(10, denomination);
+    return convertFromDenomination(amount, denomination);
   }
 }

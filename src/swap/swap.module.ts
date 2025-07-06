@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
-import { SwapController } from './swap.controller';
 import { SwapService } from './swap.service';
-import { SwapAggregatorService } from './lib/swap-aggregator.service';
+import { SwapController } from './swap.controller';
+import { RoutesModule } from '../routes/routes.module';
+import { EstimatesModule } from '../estimates/estimates.module';
+import { PoolsModule } from '../pools/pools.module';
 
 @Module({
+  imports: [RoutesModule, EstimatesModule, PoolsModule],
   controllers: [SwapController],
-  providers: [SwapService, SwapAggregatorService],
-  exports: [SwapService, SwapAggregatorService],
+  providers: [SwapService],
+  exports: [SwapService],
 })
 export class SwapModule {}
