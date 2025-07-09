@@ -2,19 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { message, dryrun } from '@permaweb/aoconnect';
 import type { Token, RouteWithEstimate } from '../shared/types';
 import { convertToDenomination } from '../shared/types';
-import * as fs from 'fs';
-
-import { createSigner } from '@permaweb/aoconnect';
-
-const walletPath = process.env.PATH_TO_WALLET;
-
-if (!walletPath) {
-  throw new Error('PATH_TO_WALLET environment variable is not set');
-}
-
-const wallet = JSON.parse(fs.readFileSync(walletPath, 'utf8')) as string;
-
-const signer = createSigner(wallet);
+import { WalletService } from '../shared/wallet.service';
 
 export interface OrderRequest {
   poolId: string;
@@ -39,6 +27,8 @@ export interface OrderResponse {
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
+  constructor(private readonly walletService: WalletService) {}
+
   async createPermaswapOrder(
     orderRequest: OrderRequest,
   ): Promise<OrderResponse> {
@@ -49,7 +39,7 @@ export class OrdersService {
     try {
       const messageId = await message({
         process: poolId,
-        signer,
+        signer: this.walletService.getSigner(),
         tags: [
           {
             name: 'Action',

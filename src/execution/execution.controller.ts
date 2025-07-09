@@ -51,7 +51,6 @@ export class ExecutionController {
         amount: dto.amount,
         minAmount: dto.minAmount,
         userAddress: dto.userAddress,
-        signer: dto.signer,
       });
 
       return {
@@ -100,7 +99,6 @@ export class ExecutionController {
         amount: dto.amount,
         noteIds: dto.noteIds,
         noteSettle: dto.noteSettle,
-        signer: dto.signer,
       });
 
       return {

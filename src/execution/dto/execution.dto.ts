@@ -1,4 +1,10 @@
-import { IsString, IsNumber, IsArray, IsPositive, ValidateNested, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsArray,
+  IsPositive,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { Token, RouteWithEstimate } from '../../shared/types';
@@ -32,9 +38,6 @@ export class SwapExecutionDto {
   @ApiProperty({ description: 'User wallet address' })
   @IsString()
   userAddress: string;
-
-  @ApiProperty({ description: 'Signer for the transaction' })
-  signer: any;
 }
 
 export class TransferDto {
@@ -56,9 +59,6 @@ export class TransferDto {
   @ApiProperty({ description: 'Note settle address' })
   @IsString()
   noteSettle: string;
-
-  @ApiProperty({ description: 'Signer for the transaction' })
-  signer: any;
 }
 
 export class SwapExecutionResponseDto {
@@ -89,7 +89,10 @@ export class SwapExecutionResponseDto {
   @ApiProperty({ description: 'Transaction status' })
   status: 'submitted' | 'pending' | 'completed' | 'failed';
 
-  @ApiPropertyOptional({ description: 'Order IDs for Permaswap routes', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Order IDs for Permaswap routes',
+    type: [String],
+  })
   orderIds?: string[];
 }
 
@@ -103,7 +106,10 @@ export class TransferResponseDto {
   @ApiProperty({ description: 'Amount transferred' })
   amount: number;
 
-  @ApiProperty({ description: 'Note IDs used for the transfer', type: [String] })
+  @ApiProperty({
+    description: 'Note IDs used for the transfer',
+    type: [String],
+  })
   noteIds: string[];
 
   @ApiProperty({ description: 'Note settle address' })
@@ -114,4 +120,4 @@ export class TransferResponseDto {
 
   @ApiProperty({ description: 'Transfer status' })
   status: 'submitted' | 'pending' | 'completed' | 'failed';
-} 
+}

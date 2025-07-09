@@ -3,6 +3,7 @@ import { message, result } from '@permaweb/aoconnect';
 import { OrdersService } from '../orders/orders.service';
 import type { Token, RouteWithEstimate } from '../shared/types';
 import { convertToDenomination } from '../shared/types';
+import { WalletService } from 'src/shared/wallet.service';
 
 export interface SwapExecutionRequest {
   route: RouteWithEstimate;
@@ -11,7 +12,6 @@ export interface SwapExecutionRequest {
   amount: number;
   minAmount: number;
   userAddress: string;
-  signer: any;
 }
 
 export interface SwapExecutionResponse {
@@ -32,7 +32,6 @@ export interface TransferRequest {
   amount: number;
   noteIds: string[];
   noteSettle: string;
-  signer: any;
 }
 
 @Injectable()
@@ -41,20 +40,16 @@ export class ExecutionService {
   private readonly DEMO_AGGREGATOR_ID =
     'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw';
 
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly walletService: WalletService,
+  ) {}
 
   async executeSwap(
     request: SwapExecutionRequest,
   ): Promise<SwapExecutionResponse> {
-    const {
-      route,
-      fromToken,
-      toToken,
-      amount,
-      minAmount,
-      userAddress,
-      signer,
-    } = request;
+    const { route, fromToken, toToken, amount, minAmount, userAddress } =
+      request;
 
     try {
       let messageId: string;
@@ -69,7 +64,6 @@ export class ExecutionService {
             amount,
             minAmount,
             userAddress,
-            signer,
           );
         } else {
           messageId = await this.executeBotegaMultiHop(
@@ -79,7 +73,6 @@ export class ExecutionService {
             amount,
             minAmount,
             userAddress,
-            signer,
           );
         }
       } else if (route.dex === 'permaswap') {
@@ -89,7 +82,6 @@ export class ExecutionService {
           toToken,
           amount,
           minAmount,
-          signer,
         );
         orderIds = orders.map((order) => order.messageId);
         messageId = await this.executePermaswapTransfer(
@@ -97,7 +89,6 @@ export class ExecutionService {
           amount,
           orderIds,
           this.DEMO_AGGREGATOR_ID,
-          signer,
         );
       } else {
         throw new Error(`Unsupported DEX: ${route.dex}`);
@@ -128,11 +119,10 @@ export class ExecutionService {
     amount: number,
     minAmount: number,
     userAddress: string,
-    signer: any,
   ): Promise<string> {
     const messageId = await message({
       process: fromToken.processId,
-      signer,
+      signer: this.walletService.getSigner(),
       tags: [
         {
           name: 'Action',
@@ -185,7 +175,6 @@ export class ExecutionService {
     amount: number,
     minAmount: number,
     userAddress: string,
-    signer: any,
   ): Promise<string> {
     if (!route.intermediateOutput || !route.intermediateToken?.denomination) {
       throw new Error('No intermediate token data for multi-hop swap');
@@ -193,7 +182,7 @@ export class ExecutionService {
 
     const messageId = await message({
       process: fromToken.processId,
-      signer,
+      signer: this.walletService.getSigner(),
       tags: [
         {
           name: 'Action',
@@ -254,13 +243,12 @@ export class ExecutionService {
     amount: number,
     noteIds: string[],
     noteSettle: string,
-    signer: any,
   ): Promise<string> {
     const currentTimestamp = Date.now();
 
     const messageId = await message({
       process: fromToken.processId,
-      signer,
+      signer: this.walletService.getSigner(),
       tags: [
         {
           name: 'Action',
@@ -302,7 +290,7 @@ export class ExecutionService {
   }
 
   async executeTransfer(request: TransferRequest): Promise<string> {
-    const { fromToken, amount, noteIds, noteSettle, signer } = request;
+    const { fromToken, amount, noteIds, noteSettle } = request;
 
     try {
       return await this.executePermaswapTransfer(
@@ -310,7 +298,6 @@ export class ExecutionService {
         amount,
         noteIds,
         noteSettle,
-        signer,
       );
     } catch (error) {
       this.logger.error('Failed to execute transfer:', error);
