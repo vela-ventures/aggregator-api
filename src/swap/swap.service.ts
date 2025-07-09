@@ -6,7 +6,6 @@ import type {
   Token,
   SwapQuoteResponse,
   QuickQuoteResponse,
-  RouteWithEstimate,
 } from '../shared/types';
 
 @Injectable()
