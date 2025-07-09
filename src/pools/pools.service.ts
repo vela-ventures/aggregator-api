@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { dryrun } from '@permaweb/aoconnect';
-import { DryrunResult } from 'libs/types';
+import { DryrunResult } from 'src/shared/types';
 
 interface BotegaPool {
   poolId: string;

@@ -53,4 +53,11 @@ export function convertFromDenomination(
   denomination: number,
 ): number {
   return amount / Math.pow(10, denomination);
-} 
+}
+
+export type DryrunResult = {
+  Messages: Array<{
+    Tags: Array<{ name: string; value: string }>;
+    Data: string;
+  }>;
+};
