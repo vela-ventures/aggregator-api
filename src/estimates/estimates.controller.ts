@@ -39,19 +39,17 @@ export class EstimatesController {
       symbol: toSymbol,
     };
 
-    // Find all routes first
     const routes = await this.routesService.findAllRoutes(fromToken, toToken);
-    
-    // Calculate estimates for all routes
-    const routesWithEstimates = await this.estimatesService.calculateRouteEstimates(
-      routes,
-      fromToken,
-      toToken,
-      parseFloat(amount),
-      userAddress,
-    );
 
-    // Return the best route
+    const routesWithEstimates =
+      await this.estimatesService.calculateRouteEstimates(
+        routes,
+        fromToken,
+        toToken,
+        parseFloat(amount),
+        userAddress,
+      );
+
     return this.estimatesService.getBestRoute(routesWithEstimates);
   }
 
@@ -84,10 +82,8 @@ export class EstimatesController {
       symbol: toSymbol,
     };
 
-    // Find all routes first
     const routes = await this.routesService.findAllRoutes(fromToken, toToken);
 
-    // Then calculate estimates for all routes
     return await this.estimatesService.calculateRouteEstimates(
       routes,
       fromToken,

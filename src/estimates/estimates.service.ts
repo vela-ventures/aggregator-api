@@ -238,7 +238,7 @@ export class EstimatesService {
     }
 
     return {
-      outputAmount,
+      outputAmount: outputAmount * 0.99,
       exchangeRate,
       fee,
     };
