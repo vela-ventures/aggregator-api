@@ -149,14 +149,8 @@ export class OrdersService {
       const result = await dryrun({
         process: processId,
         tags: [
-          {
-            name: 'Action',
-            value: 'GetOrderStatus',
-          },
-          {
-            name: 'MessageId',
-            value: messageId,
-          },
+          { name: 'Action', value: 'GetNote' },
+          { name: 'MakeTx', value: messageId },
         ],
       });
 
