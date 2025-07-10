@@ -731,6 +731,7 @@
             
             const url = `${getBaseUrl()}/orders/${encodeURIComponent(messageId)}/status?processId=${encodeURIComponent(processId)}`;
             const response = await makeRequest(url);
+            console.log(response)
             displayResponse('orders-status-response', response);
         }
 

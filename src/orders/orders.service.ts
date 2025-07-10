@@ -106,7 +106,7 @@ export class OrdersService {
           fromToken,
           toToken,
           amount,
-          minAmount,
+          minAmount: minAmount * 0.995,
         });
         orders.push(order);
       } else if (

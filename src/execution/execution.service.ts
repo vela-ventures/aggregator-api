@@ -38,7 +38,7 @@ export interface TransferRequest {
 export class ExecutionService {
   private readonly logger = new Logger(ExecutionService.name);
   private readonly DEMO_AGGREGATOR_ID =
-    'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw';
+    'cEZfKpbSfHYrmaOFGzn7CvHgWdHueZEn9DHq-aLpCms';
 
   constructor(
     private readonly ordersService: OrdersService,
