@@ -54,7 +54,7 @@ export class ExecutionController {
       });
 
       return {
-        messageId: result.messageId,
+        unsignedMessage: result.unsignedMessage,
         route: result.route,
         fromToken: result.fromToken,
         toToken: result.toToken,
@@ -64,6 +64,7 @@ export class ExecutionController {
         timestamp: result.timestamp,
         status: result.status,
         orderIds: result.orderIds,
+        orderStatusData: result.orderStatusData,
       };
     } catch (error) {
       const errorMessage =
@@ -90,11 +91,9 @@ export class ExecutionController {
   })
   @ApiBadRequestResponse({ description: 'Invalid request parameters' })
   @ApiInternalServerErrorResponse({ description: 'Failed to execute transfer' })
-  async executeTransfer(
-    @Body() dto: TransferDto,
-  ): Promise<TransferResponseDto> {
+  executeTransfer(@Body() dto: TransferDto): TransferResponseDto {
     try {
-      const messageId = await this.executionService.executeTransfer({
+      const unsignedMessage = this.executionService.executeTransfer({
         fromToken: dto.fromToken,
         amount: dto.amount,
         noteIds: dto.noteIds,
@@ -102,13 +101,13 @@ export class ExecutionController {
       });
 
       return {
-        messageId,
+        unsignedMessage,
         fromToken: dto.fromToken,
         amount: dto.amount,
         noteIds: dto.noteIds,
         noteSettle: dto.noteSettle,
         timestamp: Date.now(),
-        status: 'submitted',
+        status: 'unsigned',
       };
     } catch (error) {
       const errorMessage =

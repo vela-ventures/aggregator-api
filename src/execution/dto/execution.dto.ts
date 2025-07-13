@@ -4,10 +4,30 @@ import {
   IsArray,
   IsPositive,
   ValidateNested,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { Token, RouteWithEstimate } from '../../shared/types';
+import type { Token, RouteWithEstimate, NoteStatus } from '../../shared/types';
+
+export class UnsignedMessageDto {
+  @ApiProperty({ description: 'Process ID to send the message to' })
+  @IsString()
+  process: string;
+
+  @ApiProperty({
+    description: 'Message tags',
+    type: [Object],
+    example: [{ name: 'Action', value: 'Transfer' }],
+  })
+  @IsArray()
+  tags: Array<{ name: string; value: string }>;
+
+  @ApiPropertyOptional({ description: 'Message data (optional)' })
+  @IsOptional()
+  @IsString()
+  data?: string;
+}
 
 export class SwapExecutionDto {
   @ApiProperty({ description: 'Route for the swap' })
@@ -62,8 +82,12 @@ export class TransferDto {
 }
 
 export class SwapExecutionResponseDto {
-  @ApiProperty({ description: 'Message ID of the swap transaction' })
-  messageId: string;
+  @ApiProperty({
+    description: 'Unsigned message ready for user to sign and send',
+  })
+  @ValidateNested()
+  @Type(() => UnsignedMessageDto)
+  unsignedMessage: UnsignedMessageDto;
 
   @ApiProperty({ description: 'Route used for the swap' })
   route: RouteWithEstimate;
@@ -87,18 +111,28 @@ export class SwapExecutionResponseDto {
   timestamp: number;
 
   @ApiProperty({ description: 'Transaction status' })
-  status: 'submitted' | 'pending' | 'completed' | 'failed';
+  status: 'unsigned' | 'ready_to_sign';
 
   @ApiPropertyOptional({
     description: 'Order IDs for Permaswap routes',
     type: [String],
   })
   orderIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Order status data for Permaswap routes',
+    type: [Object],
+  })
+  orderStatusData?: NoteStatus[];
 }
 
 export class TransferResponseDto {
-  @ApiProperty({ description: 'Message ID of the transfer transaction' })
-  messageId: string;
+  @ApiProperty({
+    description: 'Unsigned message ready for user to sign and send',
+  })
+  @ValidateNested()
+  @Type(() => UnsignedMessageDto)
+  unsignedMessage: UnsignedMessageDto;
 
   @ApiProperty({ description: 'Source token details' })
   fromToken: Token;
@@ -119,5 +153,5 @@ export class TransferResponseDto {
   timestamp: number;
 
   @ApiProperty({ description: 'Transfer status' })
-  status: 'submitted' | 'pending' | 'completed' | 'failed';
+  status: 'unsigned' | 'ready_to_sign';
 }

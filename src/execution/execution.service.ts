@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { message, result } from '@permaweb/aoconnect';
 import { OrdersService } from '../orders/orders.service';
 import type {
   Token,
@@ -8,7 +7,6 @@ import type {
   NoteStatus,
 } from '../shared/types';
 import { convertToDenomination } from '../shared/types';
-import { WalletService } from 'src/shared/wallet.service';
 
 export interface SwapExecutionRequest {
   route: RouteWithEstimate;
@@ -19,8 +17,14 @@ export interface SwapExecutionRequest {
   userAddress: string;
 }
 
+export interface UnsignedMessage {
+  process: string;
+  tags: Array<{ name: string; value: string }>;
+  data?: string;
+}
+
 export interface SwapExecutionResponse {
-  messageId: string;
+  unsignedMessage: UnsignedMessage;
   route: RouteWithEstimate;
   fromToken: Token;
   toToken: Token;
@@ -28,8 +32,9 @@ export interface SwapExecutionResponse {
   minAmount: number;
   userAddress: string;
   timestamp: number;
-  status: 'submitted' | 'pending' | 'completed' | 'failed';
+  status: 'unsigned' | 'ready_to_sign';
   orderIds?: string[];
+  orderStatusData?: NoteStatus[];
 }
 
 export interface TransferRequest {
@@ -45,10 +50,7 @@ export class ExecutionService {
   private readonly DEMO_AGGREGATOR_ID =
     'cEZfKpbSfHYrmaOFGzn7CvHgWdHueZEn9DHq-aLpCms';
 
-  constructor(
-    private readonly ordersService: OrdersService,
-    private readonly walletService: WalletService,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   async executeSwap(
     request: SwapExecutionRequest,
@@ -57,12 +59,13 @@ export class ExecutionService {
       request;
 
     try {
-      let messageId: string;
+      let unsignedMessage: UnsignedMessage;
       let orderIds: string[] = [];
+      let orderStatusData: NoteStatus[] = [];
 
       if (route.dex === 'botega') {
         if (route.hops === 1) {
-          messageId = await this.executeBotegaSingleHop(
+          unsignedMessage = this.executeBotegaSingleHop(
             route,
             fromToken,
             toToken,
@@ -71,7 +74,7 @@ export class ExecutionService {
             userAddress,
           );
         } else {
-          messageId = await this.executeBotegaMultiHop(
+          unsignedMessage = this.executeBotegaMultiHop(
             route,
             fromToken,
             toToken,
@@ -90,17 +93,15 @@ export class ExecutionService {
         );
         orderIds = orders.map((order) => order.messageId);
 
-        const orderStatusData = await this.waitForOrdersToBeReady(
+        orderStatusData = await this.waitForOrdersToBeReady(
           orderIds,
           route.pools.map((pool) => pool.poolId),
         );
 
-        console.log('Order status data:', orderStatusData);
-
         const settleAddress = orderStatusData[0].Settle;
         const noteIds = orderStatusData.map((status) => status.NoteID);
 
-        messageId = await this.executePermaswapTransfer(
+        unsignedMessage = this.executePermaswapTransfer(
           fromToken,
           amount,
           noteIds,
@@ -111,7 +112,7 @@ export class ExecutionService {
       }
 
       return {
-        messageId,
+        unsignedMessage,
         route,
         fromToken,
         toToken,
@@ -119,8 +120,9 @@ export class ExecutionService {
         minAmount,
         userAddress,
         timestamp: Date.now(),
-        status: 'submitted',
+        status: 'unsigned',
         orderIds: orderIds.length > 0 ? orderIds : undefined,
+        orderStatusData: orderIds.length > 0 ? orderStatusData : undefined,
       };
     } catch (error) {
       this.logger.error('Failed to execute swap:', error);
@@ -128,17 +130,16 @@ export class ExecutionService {
     }
   }
 
-  private async executeBotegaSingleHop(
+  private executeBotegaSingleHop(
     route: RouteWithEstimate,
     fromToken: Token,
     toToken: Token,
     amount: number,
     minAmount: number,
     userAddress: string,
-  ): Promise<string> {
-    const messageId = await message({
+  ): UnsignedMessage {
+    const unsignedMessage: UnsignedMessage = {
       process: fromToken.processId,
-      signer: this.walletService.getSigner(),
       tags: [
         {
           name: 'Action',
@@ -173,32 +174,28 @@ export class ExecutionService {
           value: userAddress,
         },
       ],
-    });
+    };
 
-    await result({
-      message: messageId,
-      process: fromToken.processId,
-    });
-
-    this.logger.log(`Executed Botega single-hop swap: ${messageId}`);
-    return messageId;
+    this.logger.log(
+      `Prepared Botega single-hop swap message for process: ${fromToken.processId}`,
+    );
+    return unsignedMessage;
   }
 
-  private async executeBotegaMultiHop(
+  private executeBotegaMultiHop(
     route: RouteWithEstimate,
     fromToken: Token,
     toToken: Token,
     amount: number,
     minAmount: number,
     userAddress: string,
-  ): Promise<string> {
+  ): UnsignedMessage {
     if (!route.intermediateOutput || !route.intermediateToken?.denomination) {
       throw new Error('No intermediate token data for multi-hop swap');
     }
 
-    const messageId = await message({
+    const unsignedMessage: UnsignedMessage = {
       process: fromToken.processId,
-      signer: this.walletService.getSigner(),
       tags: [
         {
           name: 'Action',
@@ -243,28 +240,24 @@ export class ExecutionService {
           value: userAddress,
         },
       ],
-    });
+    };
 
-    await result({
-      message: messageId,
-      process: fromToken.processId,
-    });
-
-    this.logger.log(`Executed Botega multi-hop swap: ${messageId}`);
-    return messageId;
+    this.logger.log(
+      `Prepared Botega multi-hop swap message for process: ${fromToken.processId}`,
+    );
+    return unsignedMessage;
   }
 
-  private async executePermaswapTransfer(
+  private executePermaswapTransfer(
     fromToken: Token,
     amount: number,
     noteIds: string[],
     noteSettle: string,
-  ): Promise<string> {
+  ): UnsignedMessage {
     const currentTimestamp = Date.now();
 
-    const messageId = await message({
+    const unsignedMessage: UnsignedMessage = {
       process: fromToken.processId,
-      signer: this.walletService.getSigner(),
       tags: [
         {
           name: 'Action',
@@ -299,10 +292,12 @@ export class ExecutionService {
           name: 'X-Swap-Data-Agr',
         },
       ],
-    });
+    };
 
-    this.logger.log(`Executed Permaswap transfer: ${messageId}`);
-    return messageId;
+    this.logger.log(
+      `Prepared Permaswap transfer message for process: ${fromToken.processId}`,
+    );
+    return unsignedMessage;
   }
 
   private async waitForOrdersToBeReady(
@@ -333,11 +328,9 @@ export class ExecutionService {
 
           if (statusResult?.Messages?.[0]?.Data) {
             try {
-              console.log(statusResult.Messages[0].Data);
               const statusDataItem = JSON.parse(
                 statusResult.Messages[0].Data,
               ) as NoteStatus;
-              console.log(statusDataItem);
 
               if (statusDataItem.Status === 'Open') {
                 this.logger.log(`Order ${orderId} is ready (Status: Open)`);
@@ -389,11 +382,11 @@ export class ExecutionService {
     return statusData;
   }
 
-  async executeTransfer(request: TransferRequest): Promise<string> {
+  executeTransfer(request: TransferRequest): UnsignedMessage {
     const { fromToken, amount, noteIds, noteSettle } = request;
 
     try {
-      return await this.executePermaswapTransfer(
+      return this.executePermaswapTransfer(
         fromToken,
         amount,
         noteIds,
