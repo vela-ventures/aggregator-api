@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { message, result } from '@permaweb/aoconnect';
 import { OrdersService } from '../orders/orders.service';
-import type { Token, RouteWithEstimate } from '../shared/types';
+import type {
+  Token,
+  RouteWithEstimate,
+  DryrunResult,
+  NoteStatus,
+} from '../shared/types';
 import { convertToDenomination } from '../shared/types';
 import { WalletService } from 'src/shared/wallet.service';
 
@@ -84,14 +89,25 @@ export class ExecutionService {
           minAmount,
         );
         orderIds = orders.map((order) => order.messageId);
+
+        const orderStatusData = await this.waitForOrdersToBeReady(
+          orderIds,
+          route.pools.map((pool) => pool.poolId),
+        );
+
+        console.log('Order status data:', orderStatusData);
+
+        const settleAddress = orderStatusData[0].Settle;
+        const noteIds = orderStatusData.map((status) => status.NoteID);
+
         messageId = await this.executePermaswapTransfer(
           fromToken,
           amount,
-          orderIds,
-          this.DEMO_AGGREGATOR_ID,
+          noteIds,
+          settleAddress,
         );
       } else {
-        throw new Error(`Unsupported DEX: ${route.dex}`);
+        throw new Error(`Unsupported DEX`);
       }
 
       return {
@@ -287,6 +303,90 @@ export class ExecutionService {
 
     this.logger.log(`Executed Permaswap transfer: ${messageId}`);
     return messageId;
+  }
+
+  private async waitForOrdersToBeReady(
+    orderIds: string[],
+    poolIds: string[],
+    maxRetries: number = 20,
+    retryInterval: number = 2000,
+  ): Promise<NoteStatus[]> {
+    this.logger.log(`Waiting for ${orderIds.length} orders to be ready...`);
+    const statusData: NoteStatus[] = [];
+
+    for (let i = 0; i < orderIds.length; i++) {
+      const orderId = orderIds[i];
+      const poolId = poolIds[i];
+      let retries = 0;
+      let orderReady = false;
+
+      while (retries < maxRetries && !orderReady) {
+        try {
+          this.logger.log(
+            `Checking status of order ${orderId} (attempt ${retries + 1}/${maxRetries})`,
+          );
+
+          const statusResult = (await this.ordersService.getOrderStatus(
+            orderId,
+            poolId,
+          )) as DryrunResult;
+
+          if (statusResult?.Messages?.[0]?.Data) {
+            try {
+              console.log(statusResult.Messages[0].Data);
+              const statusDataItem = JSON.parse(
+                statusResult.Messages[0].Data,
+              ) as NoteStatus;
+              console.log(statusDataItem);
+
+              if (statusDataItem.Status === 'Open') {
+                this.logger.log(`Order ${orderId} is ready (Status: Open)`);
+                statusData.push(statusDataItem);
+                orderReady = true;
+              } else {
+                this.logger.log(
+                  `Order ${orderId} not ready yet (Status: ${statusDataItem.Status})`,
+                );
+              }
+            } catch (parseError) {
+              this.logger.warn(
+                `Could not parse status for order ${orderId}:`,
+                parseError,
+              );
+            }
+          } else {
+            this.logger.log(`No status data yet for order ${orderId}`);
+          }
+
+          if (!orderReady) {
+            retries++;
+            if (retries < maxRetries) {
+              await new Promise((resolve) =>
+                setTimeout(resolve, retryInterval),
+              );
+            }
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Error checking status for order ${orderId}:`,
+            error,
+          );
+          retries++;
+          if (retries < maxRetries) {
+            await new Promise((resolve) => setTimeout(resolve, retryInterval));
+          }
+        }
+      }
+
+      if (!orderReady) {
+        throw new Error(
+          `Order ${orderId} did not become ready within ${maxRetries} attempts`,
+        );
+      }
+    }
+
+    this.logger.log('All orders are ready for execution');
+    return statusData;
   }
 
   async executeTransfer(request: TransferRequest): Promise<string> {

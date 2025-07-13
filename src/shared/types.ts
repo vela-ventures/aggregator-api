@@ -61,3 +61,21 @@ export type DryrunResult = {
     Data: string;
   }>;
 };
+
+export interface NoteStatus {
+  Issuer: string;
+  HolderAssetID: string;
+  Price: number;
+  Status: string;
+  AssetID: string;
+  IssueDate: number;
+  ExpireDate: number;
+  UsePredicted: boolean;
+  ID: number;
+  SettleVersion: string;
+  NoteID: string;
+  Amount: string;
+  MakeTx: string;
+  HolderAmount: string;
+  Settle: string;
+}
