@@ -415,13 +415,13 @@
     </div>
 
     <div class="container">
-        <h2>⚡ Execution Module <span class="module-badge">/execution</span></h2>
+        <h2>📝 Messages Module <span class="module-badge">/messages</span></h2>
         
         <div class="endpoint">
-            <h3><span class="method post">POST</span>/execution/swap</h3>
-            <p>Execute swap transaction (Botega or Permaswap)</p>
+            <h3><span class="method post">POST</span>/messages/swap</h3>
+            <p>Prepare unsigned AO message for swap transaction (Botega or Permaswap)</p>
             <label>Request Body (JSON):</label>
-            <textarea id="execution-swap-body" rows="24">{
+            <textarea id="messages-swap-body" rows="24">{
   "route": {
     "dex": "botega",
     "pools": [
@@ -447,18 +447,17 @@
   },
   "amount": 100,
   "minAmount": 95,
-  "userAddress": "OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78",
-  "signer": {}
+  "userAddress": "OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78"
 }</textarea>
-            <button onclick="testExecutionSwap()">Test Execute Swap</button>
-            <div id="execution-swap-response" class="response" style="display:none;"></div>
+            <button onclick="testMessagesSwap()">Test Prepare Swap Message</button>
+            <div id="messages-swap-response" class="response" style="display:none;"></div>
         </div>
 
         <div class="endpoint">
-            <h3><span class="method post">POST</span>/execution/transfer</h3>
-            <p>Execute token transfer for Permaswap orders</p>
+            <h3><span class="method post">POST</span>/messages/transfer</h3>
+            <p>Prepare unsigned AO message for token transfer (Permaswap orders)</p>
             <label>Request Body (JSON):</label>
-            <textarea id="execution-transfer-body" rows="12">{
+            <textarea id="messages-transfer-body" rows="12">{
   "fromToken": {
     "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
     "symbol": "AO",
@@ -466,21 +465,20 @@
   },
   "amount": 100,
   "noteIds": ["note_id_1", "note_id_2"],
-  "noteSettle": "IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw",
-  "signer": {}
+  "noteSettle": "IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw"
 }</textarea>
-            <button onclick="testExecutionTransfer()">Test Execute Transfer</button>
-            <div id="execution-transfer-response" class="response" style="display:none;"></div>
+            <button onclick="testMessagesTransfer()">Test Prepare Transfer Message</button>
+            <div id="messages-transfer-response" class="response" style="display:none;"></div>
         </div>
     </div>
 
     <div class="container">
         <h2>🔄 Complete Swap Flow Test</h2>
-        <p>Test the complete swap process: Quote → Execute</p>
+        <p>Test the complete swap process: Quote → Message Preparation</p>
         
         <div class="endpoint">
             <h3>Step-by-Step Swap Process</h3>
-            <p>1. First get a quote, then use the best route to execute the swap</p>
+            <p>1. First get a quote, then use the best route to prepare the swap message</p>
             
             <div class="grid">
                 <div>
@@ -735,17 +733,17 @@
             displayResponse('orders-status-response', response);
         }
 
-        // Execution Module
-        async function testExecutionSwap() {
+        // Messages Module
+        async function testMessagesSwap() {
             try {
-                const body = JSON.parse(document.getElementById('execution-swap-body').value);
-                const response = await makeRequest(`${getBaseUrl()}/execution/swap`, {
+                const body = JSON.parse(document.getElementById('messages-swap-body').value);
+                const response = await makeRequest(`${getBaseUrl()}/messages/swap`, {
                     method: 'POST',
                     body: JSON.stringify(body)
                 });
-                displayResponse('execution-swap-response', response);
+                displayResponse('messages-swap-response', response);
             } catch (error) {
-                displayResponse('execution-swap-response', {
+                displayResponse('messages-swap-response', {
                     status: 0,
                     data: { error: 'Invalid JSON in request body: ' + error.message },
                     success: false
@@ -753,16 +751,16 @@
             }
         }
 
-        async function testExecutionTransfer() {
+        async function testMessagesTransfer() {
             try {
-                const body = JSON.parse(document.getElementById('execution-transfer-body').value);
-                const response = await makeRequest(`${getBaseUrl()}/execution/transfer`, {
+                const body = JSON.parse(document.getElementById('messages-transfer-body').value);
+                const response = await makeRequest(`${getBaseUrl()}/messages/transfer`, {
                     method: 'POST',
                     body: JSON.stringify(body)
                 });
-                displayResponse('execution-transfer-response', response);
+                displayResponse('messages-transfer-response', response);
             } catch (error) {
-                displayResponse('execution-transfer-response', {
+                displayResponse('messages-transfer-response', {
                     status: 0,
                     data: { error: 'Invalid JSON in request body: ' + error.message },
                     success: false
@@ -829,41 +827,40 @@
                 
                 flowElement.textContent += `💡 Best route: ${quote.bestRoute.dex} (${quote.bestRoute.hops} hops, estimated output: ${quote.bestRoute.estimatedOutput})\n\n`;
                 
-                // Step 2: Execute Swap
-                flowElement.textContent += '⚡ Step 2: Executing swap...\n';
-                const executeBody = {
+                // Step 2: Prepare Swap Message
+                flowElement.textContent += '📝 Step 2: Preparing swap message...\n';
+                const messageBody = {
                     route: quote.bestRoute,
                     fromToken: quote.fromToken,
                     toToken: quote.toToken,
                     amount: quote.inputAmount,
                     minAmount: Math.floor(quote.bestRoute.estimatedOutput * 0.95), // 5% slippage
-                    userAddress: userAddress,
-                    signer: {}
+                    userAddress: userAddress
                 };
                 
-                const executeResponse = await makeRequest(`${getBaseUrl()}/execution/swap`, {
+                const messageResponse = await makeRequest(`${getBaseUrl()}/messages/swap`, {
                     method: 'POST',
-                    body: JSON.stringify(executeBody)
+                    body: JSON.stringify(messageBody)
                 });
                 
-                if (!executeResponse.success) {
-                    flowElement.textContent += `❌ Swap execution failed: ${JSON.stringify(executeResponse.data, null, 2)}\n`;
+                if (!messageResponse.success) {
+                    flowElement.textContent += `❌ Message preparation failed: ${JSON.stringify(messageResponse.data, null, 2)}\n`;
                     flowElement.className = 'response error';
                     return;
                 }
                 
-                const execution = executeResponse.data;
-                flowElement.textContent += `✅ Swap executed successfully!\n`;
-                flowElement.textContent += `📝 Transaction ID: ${execution.messageId}\n`;
-                flowElement.textContent += `📊 Status: ${execution.status}\n`;
-                if (execution.orderIds) {
-                    flowElement.textContent += `🔗 Order IDs: ${execution.orderIds.join(', ')}\n`;
+                const messageData = messageResponse.data;
+                flowElement.textContent += `✅ Swap message prepared successfully!\n`;
+                flowElement.textContent += `📝 Process: ${messageData.unsignedMessage.process}\n`;
+                flowElement.textContent += `📊 Status: ${messageData.status}\n`;
+                if (messageData.orderIds) {
+                    flowElement.textContent += `🔗 Order IDs: ${messageData.orderIds.join(', ')}\n`;
                 }
                 
                 flowElement.textContent += `\n🎉 Complete swap flow test successful!\n\n`;
                 flowElement.textContent += `📋 Full Results:\n`;
                 flowElement.textContent += `Quote: ${JSON.stringify(quote, null, 2)}\n\n`;
-                flowElement.textContent += `Execution: ${JSON.stringify(execution, null, 2)}\n`;
+                flowElement.textContent += `Message: ${JSON.stringify(messageData, null, 2)}\n`;
                 
                 flowElement.className = 'response success';
                 
