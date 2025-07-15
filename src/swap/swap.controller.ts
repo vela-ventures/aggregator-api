@@ -22,7 +22,6 @@ import {
   SwapQuoteResponseDto,
   QuickQuoteRequestDto,
   QuickQuoteResponseDto,
-  TokenDto,
 } from './dto/swap-quote.dto';
 
 @ApiTags('Swap Aggregator')
@@ -51,8 +50,8 @@ export class SwapController {
   ): Promise<SwapQuoteResponseDto> {
     try {
       return await this.swapService.getSwapQuote(
-        dto.fromToken,
-        dto.toToken,
+        dto.fromTokenId,
+        dto.toTokenId,
         dto.amount,
         dto.userAddress,
       );
@@ -84,21 +83,9 @@ export class SwapController {
     @Query() dto: QuickQuoteRequestDto,
   ): Promise<QuickQuoteResponseDto> {
     try {
-      // You'll need to implement a token lookup service
-      // For now, this is a simplified version
-      const fromToken: TokenDto = {
-        processId: dto.fromTokenId,
-        denomination: 12, // Default - should come from token service
-      };
-
-      const toToken: TokenDto = {
-        processId: dto.toTokenId,
-        denomination: 12, // Default - should come from token service
-      };
-
       return await this.swapService.getQuickQuote(
-        fromToken,
-        toToken,
+        dto.fromTokenId,
+        dto.toTokenId,
         dto.amount,
         dto.userAddress,
       );

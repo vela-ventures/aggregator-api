@@ -2,11 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { RoutesService } from '../routes/routes.service';
 import { EstimatesService } from '../estimates/estimates.service';
 import { PoolsService } from '../pools/pools.service';
-import type {
-  Token,
-  SwapQuoteResponse,
-  QuickQuoteResponse,
-} from '../shared/types';
+import type { SwapQuoteResponse, QuickQuoteResponse } from '../shared/types';
 
 @Injectable()
 export class SwapService implements OnModuleInit {
@@ -34,8 +30,8 @@ export class SwapService implements OnModuleInit {
    * Get comprehensive swap quote with all routes and estimates
    */
   async getSwapQuote(
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     userAddress?: string,
   ): Promise<SwapQuoteResponse> {
@@ -44,16 +40,16 @@ export class SwapService implements OnModuleInit {
     try {
       // Find all possible routes
       const allRoutes = await this.routesService.findAllRoutes(
-        fromToken,
-        toToken,
+        fromTokenId,
+        toTokenId,
       );
 
       // Calculate estimates for all routes and sort by best output
       const routesWithEstimates =
         await this.estimatesService.calculateRouteEstimates(
           allRoutes,
-          fromToken,
-          toToken,
+          fromTokenId,
+          toTokenId,
           amount,
           userAddress,
         );
@@ -61,8 +57,8 @@ export class SwapService implements OnModuleInit {
       const executionTime = Date.now() - startTime;
 
       return {
-        fromToken,
-        toToken,
+        fromTokenId,
+        toTokenId,
         inputAmount: amount,
         routes: routesWithEstimates,
         bestRoute:
@@ -81,8 +77,8 @@ export class SwapService implements OnModuleInit {
    * Get quick quote with just the best route
    */
   async getQuickQuote(
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     userAddress?: string,
   ): Promise<QuickQuoteResponse> {
@@ -90,14 +86,17 @@ export class SwapService implements OnModuleInit {
 
     try {
       // Find all routes first
-      const routes = await this.routesService.findAllRoutes(fromToken, toToken);
+      const routes = await this.routesService.findAllRoutes(
+        fromTokenId,
+        toTokenId,
+      );
 
       // Calculate estimates for all routes
       const routesWithEstimates =
         await this.estimatesService.calculateRouteEstimates(
           routes,
-          fromToken,
-          toToken,
+          fromTokenId,
+          toTokenId,
           amount,
           userAddress,
         );

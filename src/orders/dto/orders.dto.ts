@@ -7,29 +7,33 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { Token, RouteWithEstimate } from '../../shared/types';
+import type { RouteWithEstimate } from '../../shared/types';
 
 export class CreateOrderDto {
-  @ApiProperty({ description: 'Pool ID for the order' })
+  @ApiProperty({ description: 'Pool process ID for the order' })
   @IsString()
   poolId: string;
 
-  @ApiProperty({ description: 'Source token details' })
-  @ValidateNested()
-  @Type(() => Object)
-  fromToken: Token;
+  @ApiProperty({ description: 'Source token process ID' })
+  @IsString()
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Destination token details' })
-  @ValidateNested()
-  @Type(() => Object)
-  toToken: Token;
+  @ApiProperty({ description: 'Destination token process ID' })
+  @IsString()
+  toTokenId: string;
 
-  @ApiProperty({ description: 'Amount to swap', example: 1000 })
+  @ApiProperty({
+    description: 'Raw amount to swap (no denomination conversion)',
+    example: 1000000000000,
+  })
   @IsNumber()
   @IsPositive()
   amount: number;
 
-  @ApiProperty({ description: 'Minimum amount to receive', example: 950 })
+  @ApiProperty({
+    description: 'Raw minimum amount to receive',
+    example: 950000000000,
+  })
   @IsNumber()
   @IsPositive()
   minAmount: number;
@@ -46,22 +50,23 @@ export class CreateMultipleOrdersDto {
   @Type(() => Object)
   route: RouteWithEstimate;
 
-  @ApiProperty({ description: 'Source token details' })
-  @ValidateNested()
-  @Type(() => Object)
-  fromToken: Token;
+  @ApiProperty({ description: 'Source token process ID' })
+  @IsString()
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Destination token details' })
-  @ValidateNested()
-  @Type(() => Object)
-  toToken: Token;
+  @ApiProperty({ description: 'Destination token process ID' })
+  @IsString()
+  toTokenId: string;
 
-  @ApiProperty({ description: 'Amount to swap', example: 1000 })
+  @ApiProperty({ description: 'Raw amount to swap', example: 1000000000000 })
   @IsNumber()
   @IsPositive()
   amount: number;
 
-  @ApiProperty({ description: 'Minimum amount to receive', example: 950 })
+  @ApiProperty({
+    description: 'Raw minimum amount to receive',
+    example: 950000000000,
+  })
   @IsNumber()
   @IsPositive()
   minAmount: number;
@@ -71,19 +76,19 @@ export class OrderResponseDto {
   @ApiProperty({ description: 'Message ID of the created order' })
   messageId: string;
 
-  @ApiProperty({ description: 'Pool ID used for the order' })
+  @ApiProperty({ description: 'Pool process ID used for the order' })
   poolId: string;
 
-  @ApiProperty({ description: 'Source token details' })
-  fromToken: Token;
+  @ApiProperty({ description: 'Source token process ID' })
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Destination token details' })
-  toToken: Token;
+  @ApiProperty({ description: 'Destination token process ID' })
+  toTokenId: string;
 
-  @ApiProperty({ description: 'Amount being swapped' })
+  @ApiProperty({ description: 'Raw amount being swapped' })
   amount: number;
 
-  @ApiProperty({ description: 'Minimum amount to receive' })
+  @ApiProperty({ description: 'Raw minimum amount to receive' })
   minAmount: number;
 
   @ApiProperty({ description: 'Order creation timestamp' })

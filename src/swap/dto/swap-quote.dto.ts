@@ -3,43 +3,20 @@ import {
   IsNumber,
   IsOptional,
   IsPositive,
-  ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class TokenDto {
-  @ApiProperty({ description: 'Token process ID' })
-  @IsString()
-  processId: string;
-
-  @ApiProperty({ description: 'Token denomination (decimal places)' })
-  @IsNumber()
-  denomination: number;
-
-  @ApiPropertyOptional({ description: 'Token symbol (e.g., USDC)' })
-  @IsOptional()
-  @IsString()
-  symbol?: string;
-
-  @ApiPropertyOptional({ description: 'Token name' })
-  @IsOptional()
-  @IsString()
-  name?: string;
-}
-
 export class SwapQuoteRequestDto {
-  @ApiProperty({ description: 'Source token details' })
-  @ValidateNested()
-  @Type(() => TokenDto)
-  fromToken: TokenDto;
+  @ApiProperty({ description: 'Source token process ID' })
+  @IsString()
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Destination token details' })
-  @ValidateNested()
-  @Type(() => TokenDto)
-  toToken: TokenDto;
+  @ApiProperty({ description: 'Destination token process ID' })
+  @IsString()
+  toTokenId: string;
 
-  @ApiProperty({ description: 'Amount to swap', example: 1000 })
+  @ApiProperty({ description: 'Raw amount to swap (no denomination conversion)', example: 1000000000000 })
   @IsNumber()
   @IsPositive()
   @Transform(({ value }) => parseFloat(value))
@@ -52,13 +29,13 @@ export class SwapQuoteRequestDto {
 }
 
 export class RoutePoolDto {
-  @ApiProperty({ description: 'Pool ID' })
+  @ApiProperty({ description: 'Pool process ID' })
   poolId: string;
 
-  @ApiProperty({ description: 'Input token ID' })
+  @ApiProperty({ description: 'Input token process ID' })
   tokenIn: string;
 
-  @ApiProperty({ description: 'Output token ID' })
+  @ApiProperty({ description: 'Output token process ID' })
   tokenOut: string;
 
   @ApiPropertyOptional({ description: 'Pool fee' })
@@ -75,30 +52,27 @@ export class RouteDto {
   @ApiProperty({ description: 'Number of hops in route' })
   hops: number;
 
-  @ApiPropertyOptional({ description: 'Estimated output amount' })
+  @ApiPropertyOptional({ description: 'Raw estimated output amount (no denomination conversion)' })
   estimatedOutput?: number;
 
-  @ApiPropertyOptional({ description: 'Intermediate output for multi-hop' })
+  @ApiPropertyOptional({ description: 'Raw intermediate output for multi-hop' })
   intermediateOutput?: number;
 
-  @ApiPropertyOptional({ description: 'Estimated fee' })
+  @ApiPropertyOptional({ description: 'Raw estimated fee' })
   estimatedFee?: number;
 
-  @ApiPropertyOptional({
-    description: 'Intermediate token for multi-hop',
-    type: TokenDto,
-  })
-  intermediateToken?: TokenDto;
+  @ApiPropertyOptional({ description: 'Intermediate token process ID for multi-hop' })
+  intermediateTokenId?: string;
 }
 
 export class SwapQuoteResponseDto {
-  @ApiProperty({ description: 'Source token', type: TokenDto })
-  fromToken: TokenDto;
+  @ApiProperty({ description: 'Source token process ID' })
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Destination token', type: TokenDto })
-  toToken: TokenDto;
+  @ApiProperty({ description: 'Destination token process ID' })
+  toTokenId: string;
 
-  @ApiProperty({ description: 'Input amount' })
+  @ApiProperty({ description: 'Raw input amount' })
   inputAmount: number;
 
   @ApiProperty({ description: 'All available routes', type: [RouteDto] })
@@ -130,7 +104,7 @@ export class QuickQuoteRequestDto {
   @IsString()
   toTokenId: string;
 
-  @ApiProperty({ description: 'Amount to swap', example: 1000 })
+  @ApiProperty({ description: 'Raw amount to swap (no denomination conversion)', example: 1000000000000 })
   @IsNumber()
   @IsPositive()
   @Transform(({ value }) => parseFloat(value))
@@ -150,10 +124,10 @@ export class QuickQuoteResponseDto {
   })
   bestRoute: RouteDto | null;
 
-  @ApiProperty({ description: 'Estimated output amount' })
+  @ApiProperty({ description: 'Raw estimated output amount' })
   estimatedOutput: number;
 
-  @ApiProperty({ description: 'Estimated total fee' })
+  @ApiProperty({ description: 'Raw estimated total fee' })
   estimatedFee: number;
 
   @ApiProperty({ description: 'Execution time in milliseconds' })

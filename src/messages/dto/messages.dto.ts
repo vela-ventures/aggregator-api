@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { Token, RouteWithEstimate, NoteStatus } from '../../shared/types';
+import type { RouteWithEstimate, NoteStatus } from '../../shared/types';
 
 export class UnsignedMessageDto {
   @ApiProperty({ description: 'Process ID to send the message to' })
@@ -35,22 +35,26 @@ export class SwapMessageDto {
   @Type(() => Object)
   route: RouteWithEstimate;
 
-  @ApiProperty({ description: 'Source token details' })
-  @ValidateNested()
-  @Type(() => Object)
-  fromToken: Token;
+  @ApiProperty({ description: 'Source token process ID' })
+  @IsString()
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Destination token details' })
-  @ValidateNested()
-  @Type(() => Object)
-  toToken: Token;
+  @ApiProperty({ description: 'Destination token process ID' })
+  @IsString()
+  toTokenId: string;
 
-  @ApiProperty({ description: 'Amount to swap', example: 1000 })
+  @ApiProperty({
+    description: 'Raw amount to swap (no denomination conversion)',
+    example: 1000000000000,
+  })
   @IsNumber()
   @IsPositive()
   amount: number;
 
-  @ApiProperty({ description: 'Minimum amount to receive', example: 950 })
+  @ApiProperty({
+    description: 'Raw minimum amount to receive',
+    example: 950000000000,
+  })
   @IsNumber()
   @IsPositive()
   minAmount: number;
@@ -61,12 +65,14 @@ export class SwapMessageDto {
 }
 
 export class TransferMessageDto {
-  @ApiProperty({ description: 'Source token details' })
-  @ValidateNested()
-  @Type(() => Object)
-  fromToken: Token;
+  @ApiProperty({ description: 'Source token process ID' })
+  @IsString()
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Amount to transfer', example: 1000 })
+  @ApiProperty({
+    description: 'Raw amount to transfer (no denomination conversion)',
+    example: 1000000000000,
+  })
   @IsNumber()
   @IsPositive()
   amount: number;
@@ -92,16 +98,16 @@ export class SwapMessageResponseDto {
   @ApiProperty({ description: 'Route used for the swap' })
   route: RouteWithEstimate;
 
-  @ApiProperty({ description: 'Source token details' })
-  fromToken: Token;
+  @ApiProperty({ description: 'Source token process ID' })
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Destination token details' })
-  toToken: Token;
+  @ApiProperty({ description: 'Destination token process ID' })
+  toTokenId: string;
 
-  @ApiProperty({ description: 'Amount being swapped' })
+  @ApiProperty({ description: 'Raw amount being swapped' })
   amount: number;
 
-  @ApiProperty({ description: 'Minimum amount to receive' })
+  @ApiProperty({ description: 'Raw minimum amount to receive' })
   minAmount: number;
 
   @ApiProperty({ description: 'User wallet address' })
@@ -134,10 +140,10 @@ export class TransferMessageResponseDto {
   @Type(() => UnsignedMessageDto)
   unsignedMessage: UnsignedMessageDto;
 
-  @ApiProperty({ description: 'Source token details' })
-  fromToken: Token;
+  @ApiProperty({ description: 'Source token process ID' })
+  fromTokenId: string;
 
-  @ApiProperty({ description: 'Amount transferred' })
+  @ApiProperty({ description: 'Raw amount transferred' })
   amount: number;
 
   @ApiProperty({

@@ -1,6 +1,13 @@
+export interface Token {
+  processId: string;
+  denomination?: number;
+  symbol?: string;
+  name?: string;
+}
+
 export interface SwapQuoteResponse {
-  fromToken: Token;
-  toToken: Token;
+  fromTokenId: string;
+  toTokenId: string;
   inputAmount: number;
   routes: RouteWithEstimate[];
   bestRoute: RouteWithEstimate | null;
@@ -13,10 +20,10 @@ export interface RouteWithEstimate {
   dex: 'botega' | 'permaswap';
   pools: RoutePool[];
   hops: number;
-  estimatedOutput?: number;
+  estimatedOutput: number;
   intermediateOutput?: number;
-  estimatedFee?: number;
-  intermediateToken?: Token;
+  estimatedFee: number;
+  intermediateTokenId?: string;
   error?: string;
 }
 
@@ -27,32 +34,11 @@ export interface RoutePool {
   fee?: string;
 }
 
-export interface Token {
-  processId: string;
-  denomination: number;
-  symbol?: string;
-  name?: string;
-}
-
 export interface QuickQuoteResponse {
   bestRoute: RouteWithEstimate | null;
   estimatedOutput: number;
   estimatedFee: number;
   executionTime: number;
-}
-
-export function convertToDenomination(
-  amount: number,
-  denomination: number,
-): string {
-  return Math.floor(amount * Math.pow(10, denomination)).toString();
-}
-
-export function convertFromDenomination(
-  amount: number,
-  denomination: number,
-): number {
-  return amount / Math.pow(10, denomination);
 }
 
 export type DryrunResult = {

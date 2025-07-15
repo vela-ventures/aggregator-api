@@ -2,12 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { PoolData } from '../pools/pools.service';
 import { PoolsService } from '../pools/pools.service';
 
-export interface Token {
-  processId: string;
-  denomination: number;
-  symbol?: string;
-  name?: string;
-}
+export { Token } from '../shared/types';
 
 export interface RoutePool {
   poolId: string;
@@ -20,46 +15,46 @@ export interface Route {
   dex: 'botega' | 'permaswap';
   pools: RoutePool[];
   hops: number;
-  intermediateToken?: Token;
+  intermediateTokenId?: string;
 }
 
 @Injectable()
 export class RoutesService {
   private readonly logger = new Logger(RoutesService.name);
 
-  private readonly intermediateTokens: Token[] = [
-    {
-      processId: 'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
-      denomination: 12,
-      symbol: 'wAR',
-      name: 'Wrapped AR',
-    },
+  // Common intermediate tokens for multi-hop routing
+  private readonly intermediateTokenIds: string[] = [
+    'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
+    '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
   ];
 
   constructor(private readonly poolsService: PoolsService) {}
 
-  async findAllRoutes(fromToken: Token, toToken: Token): Promise<Route[]> {
+  async findAllRoutes(
+    fromTokenId: string,
+    toTokenId: string,
+  ): Promise<Route[]> {
     try {
       const poolData = await this.poolsService.getAllPools();
 
       const directRoutes = this.findDirectRoutes(
-        fromToken.processId,
-        toToken.processId,
+        fromTokenId,
+        toTokenId,
         poolData,
       );
 
       let multiHopRoutes: Route[] = [];
       if (directRoutes.length === 0) {
         multiHopRoutes = this.findMultiHopRoutes(
-          fromToken.processId,
-          toToken.processId,
+          fromTokenId,
+          toTokenId,
           poolData,
         );
       }
 
       const allRoutes = [...directRoutes, ...multiHopRoutes];
       this.logger.log(
-        `Found ${allRoutes.length} routes for ${fromToken.symbol} -> ${toToken.symbol}`,
+        `Found ${allRoutes.length} routes for ${fromTokenId} -> ${toTokenId}`,
       );
 
       return allRoutes;
@@ -128,20 +123,18 @@ export class RoutesService {
   ): Route[] {
     const routes: Route[] = [];
 
-    for (const intermediateToken of this.intermediateTokens) {
-      const intermediateId = intermediateToken.processId;
-
-      if (intermediateId === tokenA || intermediateId === tokenB) {
+    for (const intermediateTokenId of this.intermediateTokenIds) {
+      if (intermediateTokenId === tokenA || intermediateTokenId === tokenB) {
         continue;
       }
 
       const firstHopRoutes = this.findDirectRoutes(
         tokenA,
-        intermediateId,
+        intermediateTokenId,
         poolData,
       );
       const secondHopRoutes = this.findDirectRoutes(
-        intermediateId,
+        intermediateTokenId,
         tokenB,
         poolData,
       );
@@ -152,7 +145,7 @@ export class RoutesService {
             routes.push({
               dex: firstHop.dex,
               pools: [...firstHop.pools, ...secondHop.pools],
-              intermediateToken,
+              intermediateTokenId,
               hops: 2,
             });
           }
@@ -163,11 +156,9 @@ export class RoutesService {
     return routes;
   }
 
-  setIntermediateTokens(tokens: Token[]): void {
-    this.intermediateTokens.length = 0;
-    this.intermediateTokens.push(...tokens);
-    this.logger.log(
-      `Updated intermediate tokens: ${tokens.map((t) => t.symbol).join(', ')}`,
-    );
+  setIntermediateTokens(tokens: string[]): void {
+    this.intermediateTokenIds.length = 0;
+    this.intermediateTokenIds.push(...tokens);
+    this.logger.log(`Updated intermediate tokens: ${tokens.join(', ')}`);
   }
 }

@@ -49,8 +49,8 @@ export class MessagesController {
     try {
       const result = await this.messagesService.prepareSwapMessage({
         route: dto.route,
-        fromToken: dto.fromToken,
-        toToken: dto.toToken,
+        fromTokenId: dto.fromTokenId,
+        toTokenId: dto.toTokenId,
         amount: dto.amount,
         minAmount: dto.minAmount,
         userAddress: dto.userAddress,
@@ -59,8 +59,8 @@ export class MessagesController {
       return {
         unsignedMessage: result.unsignedMessage,
         route: result.route,
-        fromToken: result.fromToken,
-        toToken: result.toToken,
+        fromTokenId: result.fromTokenId,
+        toTokenId: result.toTokenId,
         amount: result.amount,
         minAmount: result.minAmount,
         userAddress: result.userAddress,
@@ -102,7 +102,7 @@ export class MessagesController {
   ): TransferMessageResponseDto {
     try {
       const unsignedMessage = this.messagesService.prepareTransferMessage({
-        fromToken: dto.fromToken,
+        fromTokenId: dto.fromTokenId,
         amount: dto.amount,
         noteIds: dto.noteIds,
         noteSettle: dto.noteSettle,
@@ -110,7 +110,7 @@ export class MessagesController {
 
       return {
         unsignedMessage,
-        fromToken: dto.fromToken,
+        fromTokenId: dto.fromTokenId,
         amount: dto.amount,
         noteIds: dto.noteIds,
         noteSettle: dto.noteSettle,

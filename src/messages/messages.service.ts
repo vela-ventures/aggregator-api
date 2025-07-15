@@ -1,17 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OrdersService } from '../orders/orders.service';
 import type {
-  Token,
   RouteWithEstimate,
   DryrunResult,
   NoteStatus,
 } from '../shared/types';
-import { convertToDenomination } from '../shared/types';
 
 export interface SwapMessageRequest {
   route: RouteWithEstimate;
-  fromToken: Token;
-  toToken: Token;
+  fromTokenId: string;
+  toTokenId: string;
   amount: number;
   minAmount: number;
   userAddress: string;
@@ -26,8 +24,8 @@ export interface UnsignedMessage {
 export interface SwapMessageResponse {
   unsignedMessage: UnsignedMessage;
   route: RouteWithEstimate;
-  fromToken: Token;
-  toToken: Token;
+  fromTokenId: string;
+  toTokenId: string;
   amount: number;
   minAmount: number;
   userAddress: string;
@@ -38,7 +36,7 @@ export interface SwapMessageResponse {
 }
 
 export interface TransferMessageRequest {
-  fromToken: Token;
+  fromTokenId: string;
   amount: number;
   noteIds: string[];
   noteSettle: string;
@@ -55,7 +53,7 @@ export class MessagesService {
   async prepareSwapMessage(
     request: SwapMessageRequest,
   ): Promise<SwapMessageResponse> {
-    const { route, fromToken, toToken, amount, minAmount, userAddress } =
+    const { route, fromTokenId, toTokenId, amount, minAmount, userAddress } =
       request;
 
     try {
@@ -67,8 +65,7 @@ export class MessagesService {
         if (route.hops === 1) {
           unsignedMessage = this.prepareBotegaSingleHopMessage(
             route,
-            fromToken,
-            toToken,
+            fromTokenId,
             amount,
             minAmount,
             userAddress,
@@ -76,8 +73,8 @@ export class MessagesService {
         } else {
           unsignedMessage = this.prepareBotegaMultiHopMessage(
             route,
-            fromToken,
-            toToken,
+            fromTokenId,
+            toTokenId,
             amount,
             minAmount,
             userAddress,
@@ -86,8 +83,8 @@ export class MessagesService {
       } else if (route.dex === 'permaswap') {
         const orders = await this.ordersService.createMultiplePermaswapOrders(
           route,
-          fromToken,
-          toToken,
+          fromTokenId,
+          toTokenId,
           amount,
           minAmount,
         );
@@ -102,7 +99,7 @@ export class MessagesService {
         const noteIds = orderStatusData.map((status) => status.NoteID);
 
         unsignedMessage = this.preparePermaswapTransferMessage(
-          fromToken,
+          fromTokenId,
           amount,
           noteIds,
           settleAddress,
@@ -114,8 +111,8 @@ export class MessagesService {
       return {
         unsignedMessage,
         route,
-        fromToken,
-        toToken,
+        fromTokenId,
+        toTokenId,
         amount,
         minAmount,
         userAddress,
@@ -132,14 +129,13 @@ export class MessagesService {
 
   private prepareBotegaSingleHopMessage(
     route: RouteWithEstimate,
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
     amount: number,
     minAmount: number,
     userAddress: string,
   ): UnsignedMessage {
     const unsignedMessage: UnsignedMessage = {
-      process: fromToken.processId,
+      process: fromTokenId,
       tags: [
         {
           name: 'Action',
@@ -155,7 +151,7 @@ export class MessagesService {
         },
         {
           name: 'Quantity',
-          value: convertToDenomination(amount, fromToken.denomination),
+          value: Math.floor(amount).toString(),
         },
         {
           name: 'X-Action',
@@ -163,7 +159,7 @@ export class MessagesService {
         },
         {
           name: 'X-Expected-Min-Output',
-          value: convertToDenomination(minAmount, toToken.denomination),
+          value: Math.floor(minAmount).toString(),
         },
         {
           name: 'X-Swap-Data-Agr',
@@ -177,25 +173,25 @@ export class MessagesService {
     };
 
     this.logger.log(
-      `Prepared Botega single-hop swap message for process: ${fromToken.processId}`,
+      `Prepared Botega single-hop swap message for process: ${fromTokenId}`,
     );
     return unsignedMessage;
   }
 
   private prepareBotegaMultiHopMessage(
     route: RouteWithEstimate,
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     minAmount: number,
     userAddress: string,
   ): UnsignedMessage {
-    if (!route.intermediateOutput || !route.intermediateToken?.denomination) {
+    if (!route.intermediateOutput) {
       throw new Error('No intermediate token data for multi-hop swap');
     }
 
     const unsignedMessage: UnsignedMessage = {
-      process: fromToken.processId,
+      process: fromTokenId,
       tags: [
         {
           name: 'Action',
@@ -207,7 +203,7 @@ export class MessagesService {
         },
         {
           name: 'Quantity',
-          value: convertToDenomination(amount, fromToken.denomination),
+          value: Math.floor(amount).toString(),
         },
         {
           name: 'X-Action',
@@ -219,17 +215,14 @@ export class MessagesService {
             dex: route.dex,
             pools: route.pools,
             hops: route.hops,
-            intermediateTokenId: route.intermediateToken?.processId,
-            intermediateOutput: convertToDenomination(
-              route.intermediateOutput,
-              route.intermediateToken?.denomination,
-            ),
-            finalToken: toToken.processId,
+            intermediateTokenId: route.intermediateTokenId,
+            intermediateOutput: Math.floor(route.intermediateOutput).toString(),
+            finalToken: toTokenId,
           }),
         },
         {
           name: 'X-Expected-Min-Output',
-          value: convertToDenomination(minAmount, toToken.denomination),
+          value: Math.floor(minAmount).toString(),
         },
         {
           name: 'X-Swap-Data-Agr',
@@ -243,13 +236,13 @@ export class MessagesService {
     };
 
     this.logger.log(
-      `Prepared Botega multi-hop swap message for process: ${fromToken.processId}`,
+      `Prepared Botega multi-hop swap message for process: ${fromTokenId}`,
     );
     return unsignedMessage;
   }
 
   private preparePermaswapTransferMessage(
-    fromToken: Token,
+    fromTokenId: string,
     amount: number,
     noteIds: string[],
     noteSettle: string,
@@ -257,7 +250,7 @@ export class MessagesService {
     const currentTimestamp = Date.now();
 
     const unsignedMessage: UnsignedMessage = {
-      process: fromToken.processId,
+      process: fromTokenId,
       tags: [
         {
           name: 'Action',
@@ -268,7 +261,7 @@ export class MessagesService {
           value: currentTimestamp.toString(),
         },
         {
-          value: convertToDenomination(amount, fromToken.denomination),
+          value: Math.floor(amount).toString(),
           name: 'Quantity',
         },
         {
@@ -295,7 +288,7 @@ export class MessagesService {
     };
 
     this.logger.log(
-      `Prepared Permaswap transfer message for process: ${fromToken.processId}`,
+      `Prepared Permaswap transfer message for process: ${fromTokenId}`,
     );
     return unsignedMessage;
   }
@@ -383,11 +376,11 @@ export class MessagesService {
   }
 
   prepareTransferMessage(request: TransferMessageRequest): UnsignedMessage {
-    const { fromToken, amount, noteIds, noteSettle } = request;
+    const { fromTokenId, amount, noteIds, noteSettle } = request;
 
     try {
       return this.preparePermaswapTransferMessage(
-        fromToken,
+        fromTokenId,
         amount,
         noteIds,
         noteSettle,

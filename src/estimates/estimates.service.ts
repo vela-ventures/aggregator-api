@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { dryrun } from '@permaweb/aoconnect';
-import type { Route, Token } from '../routes/routes.service';
+import type { Route } from '../routes/routes.service';
 import type { DryrunResult, RouteWithEstimate } from '../shared/types';
-import {
-  convertToDenomination,
-  convertFromDenomination,
-} from '../shared/types';
 
 interface SwapEstimate {
   fee: number;
@@ -19,8 +15,8 @@ export class EstimatesService {
 
   async calculateRouteEstimates(
     routes: Route[],
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     userAddress?: string,
   ): Promise<RouteWithEstimate[]> {
@@ -28,8 +24,8 @@ export class EstimatesService {
       try {
         if (route.hops === 1) {
           const estimate = await this.calculateSingleHopEstimate(
-            fromToken,
-            toToken,
+            fromTokenId,
+            toTokenId,
             amount,
             userAddress,
             route.pools[0].poolId,
@@ -40,10 +36,10 @@ export class EstimatesService {
             estimatedOutput: estimate.out,
             estimatedFee: estimate.fee,
           };
-        } else if (route.intermediateToken) {
+        } else if (route.intermediateTokenId) {
           const firstEstimate = await this.calculateSingleHopEstimate(
-            fromToken,
-            route.intermediateToken,
+            fromTokenId,
+            route.intermediateTokenId,
             amount,
             userAddress,
             route.pools[0].poolId,
@@ -51,9 +47,9 @@ export class EstimatesService {
           );
 
           const secondEstimate = await this.calculateSingleHopEstimate(
-            route.intermediateToken,
-            toToken,
-            firstEstimate.outWithFee,
+            route.intermediateTokenId,
+            toTokenId,
+            firstEstimate.out,
             userAddress,
             route.pools[1].poolId,
             route.dex,
@@ -61,38 +57,33 @@ export class EstimatesService {
 
           return {
             ...route,
-            intermediateOutput: firstEstimate.out,
             estimatedOutput: secondEstimate.out,
             estimatedFee: firstEstimate.fee + secondEstimate.fee,
+            intermediateOutput: firstEstimate.out,
           };
-        } else {
-          throw new Error(
-            `Unsupported route configuration: ${route.hops} hops`,
-          );
         }
+        return null;
       } catch (error) {
         this.logger.error(`Error calculating estimate for route:`, error);
-        return {
-          ...route,
-          estimatedOutput: 0,
-          estimatedFee: 0,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+        return null;
       }
     });
 
-    const results = await Promise.allSettled(estimatePromises);
-
-    const validRoutes = results
-      .map((result) => (result.status === 'fulfilled' ? result.value : null))
+    const routeResults = await Promise.allSettled(estimatePromises);
+    const validRoutes = routeResults
+      .map((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          return result.value;
+        }
+        this.logger.warn(`Route ${index} failed or returned null`);
+        return null;
+      })
       .filter(
-        (route) =>
-          route !== null && route.estimatedOutput && route.estimatedOutput > 0,
-      ) as RouteWithEstimate[];
+        (route): route is RouteWithEstimate =>
+          route !== null && route.estimatedOutput > 0,
+      );
 
-    return validRoutes.sort(
-      (a, b) => (b.estimatedOutput || 0) - (a.estimatedOutput || 0),
-    );
+    return validRoutes.sort((a, b) => b.estimatedOutput - a.estimatedOutput);
   }
 
   getBestRoute(
@@ -103,8 +94,8 @@ export class EstimatesService {
   }
 
   private async calculateSingleHopEstimate(
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     userAddress: string | undefined,
     poolId: string,
@@ -112,41 +103,49 @@ export class EstimatesService {
   ): Promise<SwapEstimate> {
     if (dex === 'botega') {
       return this.calculateBotegaSwap(
-        fromToken,
-        toToken,
+        fromTokenId,
+        toTokenId,
         amount,
         userAddress,
         poolId,
       );
     } else {
-      return this.calculatePermaswapSwap(fromToken, toToken, amount, poolId);
+      return this.calculatePermaswapSwap(
+        fromTokenId,
+        toTokenId,
+        amount,
+        poolId,
+      );
     }
   }
 
   private async calculateBotegaSwap(
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     userAddress: string | undefined,
     poolId: string,
   ): Promise<SwapEstimate> {
     const tags = [
       { name: 'Action', value: 'Get-Swap-Output' },
-      { name: 'Token', value: fromToken.processId },
+      { name: 'Token', value: fromTokenId },
       {
         name: 'Swapper',
         value: userAddress || '0000000000000000000000000000000000000000000',
       },
       {
         name: 'Quantity',
-        value: this.convertToDenomination(amount, fromToken.denomination),
+        value: amount.toString(), // Use raw amount, no conversion
       },
     ];
 
-    const result = await dryrun({
-      process: poolId,
-      tags,
-    });
+    const result = await this.retryDryrun(
+      {
+        process: poolId,
+        tags,
+      },
+      'Botega',
+    );
 
     const tagArray = (result as DryrunResult).Messages[0]?.Tags || [];
     const responseTags = Object.fromEntries(
@@ -154,43 +153,87 @@ export class EstimatesService {
     );
 
     return {
-      fee: this.convertFromDenomination(
-        Number(responseTags['LP-Fee-Quantity']),
-        fromToken.denomination,
-      ),
-      out: this.convertFromDenomination(
-        Number(responseTags['Output']),
-        toToken.denomination,
-      ),
-      outWithFee: this.convertFromDenomination(
-        Number(responseTags['Output']),
-        toToken.denomination,
-      ),
+      fee: Number(responseTags['LP-Fee-Quantity']) || 0,
+      out: Number(responseTags['Output']) || 0,
+      outWithFee: Number(responseTags['Output']) || 0,
     };
   }
 
   private async calculatePermaswapSwap(
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     poolId: string,
   ): Promise<SwapEstimate> {
-    const result = await dryrun({
-      process: poolId,
-      tags: [{ name: 'Action', value: 'Info' }],
-    });
-
-    const permaswapOutput = this.estimateSwap(
-      result,
-      amount,
-      toToken.processId,
+    const result = await this.retryDryrun(
+      {
+        process: poolId,
+        tags: [{ name: 'Action', value: 'Info' }],
+      },
+      'Permaswap',
     );
+
+    const permaswapOutput = this.estimateSwap(result, amount, toTokenId);
 
     return {
       fee: permaswapOutput.outputAmount * 0.0005,
       out: permaswapOutput.outputAmount,
       outWithFee: permaswapOutput.outputAmount,
     };
+  }
+
+  private async retryDryrun(
+    params: { process: string; tags: { name: string; value: string }[] },
+    dexName: string,
+    maxRetries: number = 3,
+  ): Promise<any> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        this.logger.debug(
+          `${dexName} dryrun attempt ${attempt}/${maxRetries} for process ${params.process}`,
+        );
+
+        const result = await dryrun(params);
+        return result;
+      } catch (error) {
+        this.logger.error(
+          `${dexName} dryrun attempt ${attempt}/${maxRetries} failed:`,
+        );
+
+        // Check if it's the HTML response error
+        if (
+          error instanceof SyntaxError &&
+          error.message.includes("Unexpected token '<'")
+        ) {
+          this.logger.error(
+            `AO Gateway returned HTML instead of JSON (likely overloaded/rate-limited)`,
+          );
+
+          // Try to get the actual HTML response from the error
+          if (error.message.includes('"<html>')) {
+            const htmlMatch = error.message.match(/"(<html>.*?)"/);
+            if (htmlMatch) {
+              this.logger.error(`HTML Response Content: ${htmlMatch[1]}...`);
+            }
+          }
+        } else {
+          this.logger.error(`Other error: ${error.message}`);
+        }
+
+        // If this was the last attempt, throw the error
+        if (attempt === maxRetries) {
+          this.logger.error(
+            `All ${maxRetries} attempts failed for ${dexName} dryrun`,
+          );
+          throw error;
+        }
+
+        // Wait before retrying (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        this.logger.debug(`Waiting ${delay}ms before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
   }
 
   private estimateSwap(
@@ -220,20 +263,24 @@ export class EstimatesService {
     let exchangeRate: number;
 
     if (isXtoY) {
-      const inputRaw = inputAmountAfterFee * Math.pow(10, decimalX);
+      // Fixed: inputAmount is already raw, no need to convert again
+      const inputRaw = inputAmountAfterFee;
       const k = reserveX * reserveY;
       const newReserveX = reserveX + inputRaw;
       const newReserveY = k / newReserveX;
       const outputRaw = reserveY - newReserveY;
-      outputAmount = outputRaw / Math.pow(10, decimalY);
+      // Return raw output to match API expectations (no denomination conversion)
+      outputAmount = outputRaw;
       exchangeRate = outputAmount / inputAmountAfterFee;
     } else {
-      const inputRaw = inputAmountAfterFee * Math.pow(10, decimalY);
+      // Fixed: inputAmount is already raw, no need to convert again
+      const inputRaw = inputAmountAfterFee;
       const k = reserveX * reserveY;
       const newReserveY = reserveY + inputRaw;
       const newReserveX = k / newReserveY;
       const outputRaw = reserveX - newReserveX;
-      outputAmount = outputRaw / Math.pow(10, decimalX);
+      // Return raw output to match API expectations (no denomination conversion)
+      outputAmount = outputRaw;
       exchangeRate = outputAmount / inputAmountAfterFee;
     }
 
@@ -242,16 +289,5 @@ export class EstimatesService {
       exchangeRate,
       fee,
     };
-  }
-
-  private convertToDenomination(amount: number, denomination: number): string {
-    return convertToDenomination(amount, denomination);
-  }
-
-  private convertFromDenomination(
-    amount: number,
-    denomination: number,
-  ): number {
-    return convertFromDenomination(amount, denomination);
   }
 }

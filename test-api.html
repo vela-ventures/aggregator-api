@@ -102,6 +102,20 @@
 </head>
 <body>
     <h1>🔄 Swap Aggregator API Tester - Complete API</h1>
+
+    <div class="container">
+        <h2>⚡ Simplified API Structure</h2>
+        <div style="background: #e7f3ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <h3>🎯 Key Changes:</h3>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                <li><strong>Token Objects → Token IDs:</strong> Use simple <code>fromTokenId</code>/<code>toTokenId</code> strings instead of Token objects</li>
+                <li><strong>Raw Amounts:</strong> All amounts are now raw blockchain values (no denomination conversion)</li>
+                <li><strong>Frontend Responsibility:</strong> UI handles all denomination conversions for display</li>
+                <li><strong>Cleaner API:</strong> No complex Token objects with symbol/name/denomination metadata</li>
+            </ul>
+            <p><strong>💡 Example:</strong> <code>1000000000000</code> = 1000 tokens with 12 decimals</p>
+        </div>
+    </div>
     
     <div class="container">
         <h2>API Configuration</h2>
@@ -246,22 +260,13 @@
             <h3><span class="method post">POST</span>/swap/quote</h3>
             <p>Get comprehensive swap quote with all routes</p>
             <label>Request Body (JSON):</label>
-            <textarea id="swap-quote-body" rows="12">{
-  "fromToken": {
-    "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
-    "symbol": "AO",
-    "name": "AO Token",
-    "denomination": 12
-  },
-  "toToken": {
-    "processId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
-    "symbol": "wAR",
-    "name": "Wrapped AR",
-    "denomination": 12
-  },
-  "amount": 1000,
+            <textarea id="swap-quote-body" rows="8">{
+  "fromTokenId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
+  "toTokenId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
+  "amount": 1000000000000,
   "userAddress": "OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78"
 }</textarea>
+            <p><strong>📝 Note:</strong> Amount is now raw (1,000,000,000,000 = 1000 tokens with 12 decimals). Frontend handles conversions.</p>
             <button onclick="testSwapQuote()">Test Swap Quote</button>
             <div id="swap-quote-response" class="response" style="display:none;"></div>
         </div>
@@ -281,8 +286,8 @@
             </div>
             <div class="grid">
                 <div>
-                    <label>Amount:</label>
-                    <input type="number" id="swap-quick-amount" value="100" placeholder="100">
+                    <label>Amount (raw):</label>
+                    <input type="number" id="swap-quick-amount" value="100000000000" placeholder="100000000000">
                 </div>
                 <div>
                     <label>User Address (optional):</label>
@@ -330,23 +335,15 @@
             <h3><span class="method post">POST</span>/orders</h3>
             <p>Create single Permaswap order</p>
             <label>Request Body (JSON):</label>
-            <textarea id="orders-single-body" rows="16">{
+            <textarea id="orders-single-body" rows="10">{
   "poolId": "pool_process_id_here",
-  "fromToken": {
-    "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
-    "symbol": "AO",
-    "denomination": 12
-  },
-  "toToken": {
-    "processId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
-    "symbol": "wAR",
-    "denomination": 12
-  },
-  "amount": 100,
-  "minAmount": 95,
-  "settleAddress": "IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw",
-  "signer": {}
+  "fromTokenId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
+  "toTokenId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
+  "amount": 100000000000,
+  "minAmount": 95000000000,
+  "settleAddress": "IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw"
 }</textarea>
+            <p><strong>📝 Note:</strong> Amount is now raw (100,000,000,000 = 100 tokens with 12 decimals). Removed signer field.</p>
             <button onclick="testOrdersSingle()">Test Create Single Order</button>
             <div id="orders-single-response" class="response" style="display:none;"></div>
         </div>
@@ -355,7 +352,7 @@
             <h3><span class="method post">POST</span>/orders/multiple</h3>
             <p>Create multiple orders for multi-hop routes</p>
             <label>Request Body (JSON):</label>
-            <textarea id="orders-multiple-body" rows="20">{
+            <textarea id="orders-multiple-body" rows="18">{
   "route": {
     "dex": "permaswap",
     "pools": [
@@ -371,27 +368,17 @@
       }
     ],
     "hops": 2,
-    "intermediateToken": {
-      "processId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
-      "symbol": "wAR",
-      "denomination": 12
-    },
-    "intermediateOutput": 98
+    "intermediateTokenId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
+    "intermediateOutput": 98000000000,
+    "estimatedOutput": 90000000000,
+    "estimatedFee": 1000000000
   },
-  "fromToken": {
-    "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
-    "symbol": "AO",
-    "denomination": 12
-  },
-  "toToken": {
-    "processId": "target_token_id",
-    "symbol": "TARGET",
-    "denomination": 12
-  },
-  "amount": 100,
-  "minAmount": 90,
-  "signer": {}
+  "fromTokenId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
+  "toTokenId": "target_token_id",
+  "amount": 100000000000,
+  "minAmount": 90000000000
 }</textarea>
+            <p><strong>📝 Note:</strong> Amounts are now raw. Use intermediateTokenId instead of intermediateToken object.</p>
             <button onclick="testOrdersMultiple()">Test Create Multiple Orders</button>
             <div id="orders-multiple-response" class="response" style="display:none;"></div>
         </div>
@@ -432,21 +419,13 @@
       }
     ],
     "hops": 1,
-    "estimatedOutput": 95,
-    "estimatedFee": 0.5
+    "estimatedOutput": 95000000000,
+    "estimatedFee": 500000000
   },
-  "fromToken": {
-    "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
-    "symbol": "AO",
-    "denomination": 12
-  },
-  "toToken": {
-    "processId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
-    "symbol": "wAR",
-    "denomination": 12
-  },
-  "amount": 100,
-  "minAmount": 95,
+  "fromTokenId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
+  "toTokenId": "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10",
+  "amount": 100000000000,
+  "minAmount": 95000000000,
   "userAddress": "OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78"
 }</textarea>
             <button onclick="testMessagesSwap()">Test Prepare Swap Message</button>
@@ -457,16 +436,13 @@
             <h3><span class="method post">POST</span>/messages/transfer</h3>
             <p>Prepare unsigned AO message for token transfer (Permaswap orders)</p>
             <label>Request Body (JSON):</label>
-            <textarea id="messages-transfer-body" rows="12">{
-  "fromToken": {
-    "processId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
-    "symbol": "AO",
-    "denomination": 12
-  },
-  "amount": 100,
+            <textarea id="messages-transfer-body" rows="7">{
+  "fromTokenId": "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc",
+  "amount": 100000000000,
   "noteIds": ["note_id_1", "note_id_2"],
   "noteSettle": "IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw"
 }</textarea>
+            <p><strong>📝 Note:</strong> Amount is now raw (100,000,000,000 = 100 tokens with 12 decimals).</p>
             <button onclick="testMessagesTransfer()">Test Prepare Transfer Message</button>
             <div id="messages-transfer-response" class="response" style="display:none;"></div>
         </div>
@@ -492,8 +468,9 @@
             </div>
             <div class="grid">
                 <div>
-                    <label>Amount:</label>
+                    <label>Amount (user-friendly):</label>
                     <input type="number" id="flow-amount" value="100" placeholder="100">
+                    <small style="color: #666;">Will be converted to raw amount (×10¹²)</small>
                 </div>
                 <div>
                     <label>User Address:</label>
@@ -793,15 +770,9 @@
                 // Step 1: Get Quote
                 flowElement.textContent += '🔍 Step 1: Getting swap quote...\n';
                 const quoteBody = {
-                    fromToken: {
-                        processId: fromToken,
-                        denomination: 12
-                    },
-                    toToken: {
-                        processId: toToken,
-                        denomination: 12
-                    },
-                    amount: parseFloat(amount),
+                    fromTokenId: fromToken,
+                    toTokenId: toToken,
+                    amount: parseFloat(amount) * Math.pow(10, 12), // Convert to raw amount (assuming 12 decimals)
                     userAddress: userAddress
                 };
                 
@@ -831,8 +802,8 @@
                 flowElement.textContent += '📝 Step 2: Preparing swap message...\n';
                 const messageBody = {
                     route: quote.bestRoute,
-                    fromToken: quote.fromToken,
-                    toToken: quote.toToken,
+                    fromTokenId: quote.fromTokenId,
+                    toTokenId: quote.toTokenId,
                     amount: quote.inputAmount,
                     minAmount: Math.floor(quote.bestRoute.estimatedOutput * 0.95), // 5% slippage
                     userAddress: userAddress

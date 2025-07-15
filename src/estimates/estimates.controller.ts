@@ -1,5 +1,4 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
-import type { Token } from '../routes/routes.service';
 import { RoutesService } from '../routes/routes.service';
 import { EstimatesService } from './estimates.service';
 
@@ -11,14 +10,10 @@ export class EstimatesController {
   ) {}
 
   @Get('best')
-  async getBestRoute(
+  async getBestEstimate(
     @Query('fromToken') fromTokenId: string,
     @Query('toToken') toTokenId: string,
     @Query('amount') amount: string,
-    @Query('fromDenomination') fromDenomination?: string,
-    @Query('toDenomination') toDenomination?: string,
-    @Query('fromSymbol') fromSymbol?: string,
-    @Query('toSymbol') toSymbol?: string,
     @Query('userAddress') userAddress?: string,
   ) {
     if (!fromTokenId || !toTokenId || !amount) {
@@ -27,41 +22,38 @@ export class EstimatesController {
       );
     }
 
-    const fromToken: Token = {
-      processId: fromTokenId,
-      denomination: fromDenomination ? parseInt(fromDenomination) : 12,
-      symbol: fromSymbol,
-    };
-
-    const toToken: Token = {
-      processId: toTokenId,
-      denomination: toDenomination ? parseInt(toDenomination) : 12,
-      symbol: toSymbol,
-    };
-
-    const routes = await this.routesService.findAllRoutes(fromToken, toToken);
+    const routes = await this.routesService.findAllRoutes(
+      fromTokenId,
+      toTokenId,
+    );
 
     const routesWithEstimates =
       await this.estimatesService.calculateRouteEstimates(
         routes,
-        fromToken,
-        toToken,
+        fromTokenId,
+        toTokenId,
         parseFloat(amount),
         userAddress,
       );
 
-    return this.estimatesService.getBestRoute(routesWithEstimates);
+    const bestRoute = this.estimatesService.getBestRoute(routesWithEstimates);
+
+    if (!bestRoute) {
+      throw new BadRequestException('No valid routes found');
+    }
+
+    return {
+      route: bestRoute,
+      estimatedOutput: bestRoute.estimatedOutput,
+      estimatedFee: bestRoute.estimatedFee,
+    };
   }
 
   @Get('all')
-  async getAllRoutes(
+  async getAllEstimates(
     @Query('fromToken') fromTokenId: string,
     @Query('toToken') toTokenId: string,
     @Query('amount') amount: string,
-    @Query('fromDenomination') fromDenomination?: string,
-    @Query('toDenomination') toDenomination?: string,
-    @Query('fromSymbol') fromSymbol?: string,
-    @Query('toSymbol') toSymbol?: string,
     @Query('userAddress') userAddress?: string,
   ) {
     if (!fromTokenId || !toTokenId || !amount) {
@@ -70,26 +62,23 @@ export class EstimatesController {
       );
     }
 
-    const fromToken: Token = {
-      processId: fromTokenId,
-      denomination: fromDenomination ? parseInt(fromDenomination) : 12,
-      symbol: fromSymbol,
-    };
-
-    const toToken: Token = {
-      processId: toTokenId,
-      denomination: toDenomination ? parseInt(toDenomination) : 12,
-      symbol: toSymbol,
-    };
-
-    const routes = await this.routesService.findAllRoutes(fromToken, toToken);
-
-    return await this.estimatesService.calculateRouteEstimates(
-      routes,
-      fromToken,
-      toToken,
-      parseFloat(amount),
-      userAddress,
+    const routes = await this.routesService.findAllRoutes(
+      fromTokenId,
+      toTokenId,
     );
+
+    const routesWithEstimates =
+      await this.estimatesService.calculateRouteEstimates(
+        routes,
+        fromTokenId,
+        toTokenId,
+        parseFloat(amount),
+        userAddress,
+      );
+
+    return {
+      routes: routesWithEstimates,
+      count: routesWithEstimates.length,
+    };
   }
 }

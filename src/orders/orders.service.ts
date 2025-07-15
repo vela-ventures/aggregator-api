@@ -1,13 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { message, dryrun } from '@permaweb/aoconnect';
-import type { Token, RouteWithEstimate } from '../shared/types';
-import { convertToDenomination } from '../shared/types';
+import type { RouteWithEstimate } from '../shared/types';
 import { WalletService } from '../shared/wallet.service';
 
 export interface OrderRequest {
   poolId: string;
-  fromToken: Token;
-  toToken: Token;
+  fromTokenId: string;
+  toTokenId: string;
   amount: number;
   minAmount: number;
   settleAddress?: string;
@@ -16,8 +15,8 @@ export interface OrderRequest {
 export interface OrderResponse {
   messageId: string;
   poolId: string;
-  fromToken: Token;
-  toToken: Token;
+  fromTokenId: string;
+  toTokenId: string;
   amount: number;
   minAmount: number;
   timestamp: number;
@@ -32,7 +31,7 @@ export class OrdersService {
   async createPermaswapOrder(
     orderRequest: OrderRequest,
   ): Promise<OrderResponse> {
-    const { poolId, fromToken, toToken, amount, minAmount, settleAddress } =
+    const { poolId, fromTokenId, toTokenId, amount, minAmount, settleAddress } =
       orderRequest;
     const currentTimestamp = Date.now();
 
@@ -47,19 +46,19 @@ export class OrdersService {
           },
           {
             name: 'AmountIn',
-            value: convertToDenomination(amount, fromToken.denomination),
+            value: Math.floor(amount).toString(),
           },
           {
             name: 'AmountOut',
-            value: convertToDenomination(minAmount, toToken.denomination),
+            value: Math.floor(minAmount).toString(),
           },
           {
             name: 'TokenIn',
-            value: fromToken.processId,
+            value: fromTokenId,
           },
           {
             name: 'TokenOut',
-            value: toToken.processId,
+            value: toTokenId,
           },
           {
             name: 'TimeStamp',
@@ -74,8 +73,8 @@ export class OrdersService {
       return {
         messageId,
         poolId,
-        fromToken,
-        toToken,
+        fromTokenId,
+        toTokenId,
         amount,
         minAmount,
         timestamp: currentTimestamp,
@@ -88,8 +87,8 @@ export class OrdersService {
 
   async createMultiplePermaswapOrders(
     route: RouteWithEstimate,
-    fromToken: Token,
-    toToken: Token,
+    fromTokenId: string,
+    toTokenId: string,
     amount: number,
     minAmount: number,
   ): Promise<OrderResponse[]> {
@@ -103,21 +102,21 @@ export class OrdersService {
       if (route.hops === 1) {
         const order = await this.createPermaswapOrder({
           poolId: route.pools[0].poolId,
-          fromToken,
-          toToken,
+          fromTokenId,
+          toTokenId,
           amount,
           minAmount: minAmount * 0.995,
         });
         orders.push(order);
       } else if (
         route.hops === 2 &&
-        route.intermediateToken &&
+        route.intermediateTokenId &&
         route.intermediateOutput
       ) {
         const firstOrder = await this.createPermaswapOrder({
           poolId: route.pools[0].poolId,
-          fromToken,
-          toToken: route.intermediateToken,
+          fromTokenId,
+          toTokenId: route.intermediateTokenId,
           amount,
           minAmount: Number(route.intermediateOutput) * 0.98,
           settleAddress: 'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw',
@@ -126,8 +125,8 @@ export class OrdersService {
 
         const secondOrder = await this.createPermaswapOrder({
           poolId: route.pools[1].poolId,
-          fromToken: route.intermediateToken,
-          toToken,
+          fromTokenId: route.intermediateTokenId,
+          toTokenId,
           amount: route.intermediateOutput * 0.95,
           minAmount: minAmount * 0.95,
           settleAddress: 'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw',

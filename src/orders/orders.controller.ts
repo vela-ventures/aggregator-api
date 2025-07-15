@@ -47,8 +47,8 @@ export class OrdersController {
     try {
       const order = await this.ordersService.createPermaswapOrder({
         poolId: dto.poolId,
-        fromToken: dto.fromToken,
-        toToken: dto.toToken,
+        fromTokenId: dto.fromTokenId,
+        toTokenId: dto.toTokenId,
         amount: dto.amount,
         minAmount: dto.minAmount,
         settleAddress: dto.settleAddress,
@@ -57,8 +57,8 @@ export class OrdersController {
       return {
         messageId: order.messageId,
         poolId: order.poolId,
-        fromToken: order.fromToken,
-        toToken: order.toToken,
+        fromTokenId: order.fromTokenId,
+        toTokenId: order.toTokenId,
         amount: order.amount,
         minAmount: order.minAmount,
         timestamp: order.timestamp,
@@ -95,8 +95,8 @@ export class OrdersController {
     try {
       const orders = await this.ordersService.createMultiplePermaswapOrders(
         dto.route,
-        dto.fromToken,
-        dto.toToken,
+        dto.fromTokenId,
+        dto.toTokenId,
         dto.amount,
         dto.minAmount,
       );
@@ -104,8 +104,8 @@ export class OrdersController {
       return orders.map((order) => ({
         messageId: order.messageId,
         poolId: order.poolId,
-        fromToken: order.fromToken,
-        toToken: order.toToken,
+        fromTokenId: order.fromTokenId,
+        toTokenId: order.toTokenId,
         amount: order.amount,
         minAmount: order.minAmount,
         timestamp: order.timestamp,
