@@ -5,7 +5,7 @@ import { RoutesModule } from './routes/routes.module';
 import { EstimatesModule } from './estimates/estimates.module';
 import { SwapModule } from './swap/swap.module';
 import { OrdersModule } from './orders/orders.module';
-import { ExecutionModule } from './execution/execution.module';
+import { MessagesModule } from './messages/messages.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -18,7 +18,7 @@ import { ConfigModule } from '@nestjs/config';
     EstimatesModule,
     SwapModule,
     OrdersModule,
-    ExecutionModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [],

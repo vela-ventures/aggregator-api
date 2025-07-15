@@ -29,7 +29,7 @@ export class UnsignedMessageDto {
   data?: string;
 }
 
-export class SwapExecutionDto {
+export class SwapMessageDto {
   @ApiProperty({ description: 'Route for the swap' })
   @ValidateNested()
   @Type(() => Object)
@@ -60,7 +60,7 @@ export class SwapExecutionDto {
   userAddress: string;
 }
 
-export class TransferDto {
+export class TransferMessageDto {
   @ApiProperty({ description: 'Source token details' })
   @ValidateNested()
   @Type(() => Object)
@@ -81,9 +81,9 @@ export class TransferDto {
   noteSettle: string;
 }
 
-export class SwapExecutionResponseDto {
+export class SwapMessageResponseDto {
   @ApiProperty({
-    description: 'Unsigned message ready for user to sign and send',
+    description: 'Unsigned AO message ready for user to sign and send',
   })
   @ValidateNested()
   @Type(() => UnsignedMessageDto)
@@ -107,10 +107,10 @@ export class SwapExecutionResponseDto {
   @ApiProperty({ description: 'User wallet address' })
   userAddress: string;
 
-  @ApiProperty({ description: 'Transaction timestamp' })
+  @ApiProperty({ description: 'Message preparation timestamp' })
   timestamp: number;
 
-  @ApiProperty({ description: 'Transaction status' })
+  @ApiProperty({ description: 'Message status' })
   status: 'unsigned' | 'ready_to_sign';
 
   @ApiPropertyOptional({
@@ -126,9 +126,9 @@ export class SwapExecutionResponseDto {
   orderStatusData?: NoteStatus[];
 }
 
-export class TransferResponseDto {
+export class TransferMessageResponseDto {
   @ApiProperty({
-    description: 'Unsigned message ready for user to sign and send',
+    description: 'Unsigned AO message ready for user to sign and send',
   })
   @ValidateNested()
   @Type(() => UnsignedMessageDto)
@@ -149,9 +149,9 @@ export class TransferResponseDto {
   @ApiProperty({ description: 'Note settle address' })
   noteSettle: string;
 
-  @ApiProperty({ description: 'Transfer timestamp' })
+  @ApiProperty({ description: 'Message preparation timestamp' })
   timestamp: number;
 
-  @ApiProperty({ description: 'Transfer status' })
+  @ApiProperty({ description: 'Message status' })
   status: 'unsigned' | 'ready_to_sign';
 }

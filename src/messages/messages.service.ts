@@ -8,7 +8,7 @@ import type {
 } from '../shared/types';
 import { convertToDenomination } from '../shared/types';
 
-export interface SwapExecutionRequest {
+export interface SwapMessageRequest {
   route: RouteWithEstimate;
   fromToken: Token;
   toToken: Token;
@@ -23,7 +23,7 @@ export interface UnsignedMessage {
   data?: string;
 }
 
-export interface SwapExecutionResponse {
+export interface SwapMessageResponse {
   unsignedMessage: UnsignedMessage;
   route: RouteWithEstimate;
   fromToken: Token;
@@ -37,7 +37,7 @@ export interface SwapExecutionResponse {
   orderStatusData?: NoteStatus[];
 }
 
-export interface TransferRequest {
+export interface TransferMessageRequest {
   fromToken: Token;
   amount: number;
   noteIds: string[];
@@ -45,16 +45,16 @@ export interface TransferRequest {
 }
 
 @Injectable()
-export class ExecutionService {
-  private readonly logger = new Logger(ExecutionService.name);
+export class MessagesService {
+  private readonly logger = new Logger(MessagesService.name);
   private readonly DEMO_AGGREGATOR_ID =
     'cEZfKpbSfHYrmaOFGzn7CvHgWdHueZEn9DHq-aLpCms';
 
   constructor(private readonly ordersService: OrdersService) {}
 
-  async executeSwap(
-    request: SwapExecutionRequest,
-  ): Promise<SwapExecutionResponse> {
+  async prepareSwapMessage(
+    request: SwapMessageRequest,
+  ): Promise<SwapMessageResponse> {
     const { route, fromToken, toToken, amount, minAmount, userAddress } =
       request;
 
@@ -65,7 +65,7 @@ export class ExecutionService {
 
       if (route.dex === 'botega') {
         if (route.hops === 1) {
-          unsignedMessage = this.executeBotegaSingleHop(
+          unsignedMessage = this.prepareBotegaSingleHopMessage(
             route,
             fromToken,
             toToken,
@@ -74,7 +74,7 @@ export class ExecutionService {
             userAddress,
           );
         } else {
-          unsignedMessage = this.executeBotegaMultiHop(
+          unsignedMessage = this.prepareBotegaMultiHopMessage(
             route,
             fromToken,
             toToken,
@@ -101,7 +101,7 @@ export class ExecutionService {
         const settleAddress = orderStatusData[0].Settle;
         const noteIds = orderStatusData.map((status) => status.NoteID);
 
-        unsignedMessage = this.executePermaswapTransfer(
+        unsignedMessage = this.preparePermaswapTransferMessage(
           fromToken,
           amount,
           noteIds,
@@ -125,12 +125,12 @@ export class ExecutionService {
         orderStatusData: orderIds.length > 0 ? orderStatusData : undefined,
       };
     } catch (error) {
-      this.logger.error('Failed to execute swap:', error);
+      this.logger.error('Failed to prepare swap message:', error);
       throw error;
     }
   }
 
-  private executeBotegaSingleHop(
+  private prepareBotegaSingleHopMessage(
     route: RouteWithEstimate,
     fromToken: Token,
     toToken: Token,
@@ -182,7 +182,7 @@ export class ExecutionService {
     return unsignedMessage;
   }
 
-  private executeBotegaMultiHop(
+  private prepareBotegaMultiHopMessage(
     route: RouteWithEstimate,
     fromToken: Token,
     toToken: Token,
@@ -248,7 +248,7 @@ export class ExecutionService {
     return unsignedMessage;
   }
 
-  private executePermaswapTransfer(
+  private preparePermaswapTransferMessage(
     fromToken: Token,
     amount: number,
     noteIds: string[],
@@ -378,22 +378,22 @@ export class ExecutionService {
       }
     }
 
-    this.logger.log('All orders are ready for execution');
+    this.logger.log('All orders are ready for message preparation');
     return statusData;
   }
 
-  executeTransfer(request: TransferRequest): UnsignedMessage {
+  prepareTransferMessage(request: TransferMessageRequest): UnsignedMessage {
     const { fromToken, amount, noteIds, noteSettle } = request;
 
     try {
-      return this.executePermaswapTransfer(
+      return this.preparePermaswapTransferMessage(
         fromToken,
         amount,
         noteIds,
         noteSettle,
       );
     } catch (error) {
-      this.logger.error('Failed to execute transfer:', error);
+      this.logger.error('Failed to prepare transfer message:', error);
       throw error;
     }
   }

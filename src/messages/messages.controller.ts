@@ -14,37 +14,40 @@ import {
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
-import { ExecutionService } from './execution.service';
+import { MessagesService } from './messages.service';
 import {
-  SwapExecutionDto,
-  TransferDto,
-  SwapExecutionResponseDto,
-  TransferResponseDto,
-} from './dto/execution.dto';
+  SwapMessageDto,
+  TransferMessageDto,
+  SwapMessageResponseDto,
+  TransferMessageResponseDto,
+} from './dto/messages.dto';
 
-@ApiTags('Execution')
-@Controller('execution')
+@ApiTags('Messages')
+@Controller('messages')
 @UsePipes(new ValidationPipe({ transform: true }))
-export class ExecutionController {
-  constructor(private readonly executionService: ExecutionService) {}
+export class MessagesController {
+  constructor(private readonly messagesService: MessagesService) {}
 
   @Post('swap')
   @ApiOperation({
-    summary: 'Execute swap',
-    description: 'Executes a swap transaction for the given route',
+    summary: 'Prepare swap message',
+    description:
+      'Prepares an unsigned AO message for swap transaction that user can sign and send',
   })
   @ApiResponse({
     status: 201,
-    description: 'Swap executed successfully',
-    type: SwapExecutionResponseDto,
+    description: 'Swap message prepared successfully',
+    type: SwapMessageResponseDto,
   })
   @ApiBadRequestResponse({ description: 'Invalid request parameters' })
-  @ApiInternalServerErrorResponse({ description: 'Failed to execute swap' })
-  async executeSwap(
-    @Body() dto: SwapExecutionDto,
-  ): Promise<SwapExecutionResponseDto> {
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to prepare swap message',
+  })
+  async prepareSwapMessage(
+    @Body() dto: SwapMessageDto,
+  ): Promise<SwapMessageResponseDto> {
     try {
-      const result = await this.executionService.executeSwap({
+      const result = await this.messagesService.prepareSwapMessage({
         route: dto.route,
         fromToken: dto.fromToken,
         toToken: dto.toToken,
@@ -71,7 +74,7 @@ export class ExecutionController {
         error instanceof Error ? error.message : 'Unknown error occurred';
       throw new HttpException(
         {
-          message: 'Failed to execute swap',
+          message: 'Failed to prepare swap message',
           error: errorMessage,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -81,19 +84,24 @@ export class ExecutionController {
 
   @Post('transfer')
   @ApiOperation({
-    summary: 'Execute transfer',
-    description: 'Executes a token transfer for Permaswap orders',
+    summary: 'Prepare transfer message',
+    description:
+      'Prepares an unsigned AO message for token transfer that user can sign and send',
   })
   @ApiResponse({
     status: 201,
-    description: 'Transfer executed successfully',
-    type: TransferResponseDto,
+    description: 'Transfer message prepared successfully',
+    type: TransferMessageResponseDto,
   })
   @ApiBadRequestResponse({ description: 'Invalid request parameters' })
-  @ApiInternalServerErrorResponse({ description: 'Failed to execute transfer' })
-  executeTransfer(@Body() dto: TransferDto): TransferResponseDto {
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to prepare transfer message',
+  })
+  prepareTransferMessage(
+    @Body() dto: TransferMessageDto,
+  ): TransferMessageResponseDto {
     try {
-      const unsignedMessage = this.executionService.executeTransfer({
+      const unsignedMessage = this.messagesService.prepareTransferMessage({
         fromToken: dto.fromToken,
         amount: dto.amount,
         noteIds: dto.noteIds,
@@ -114,7 +122,7 @@ export class ExecutionController {
         error instanceof Error ? error.message : 'Unknown error occurred';
       throw new HttpException(
         {
-          message: 'Failed to execute transfer',
+          message: 'Failed to prepare transfer message',
           error: errorMessage,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
