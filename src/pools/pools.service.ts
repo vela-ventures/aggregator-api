@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { dryrun } from '@permaweb/aoconnect';
-import { DryrunResult } from 'src/shared/types';
+import type { DryrunResult } from '../shared/types';
+import { HARDCODED_BOTEGA_POOLS, BotegaPoolData } from './botega-pools-data';
 
 interface BotegaPool {
   poolId: string;
@@ -82,32 +83,66 @@ export class PoolsService {
 
   private async fetchBotegaPools(): Promise<BotegaPool[]> {
     try {
-      const result = await dryrun({
-        process: '3XBGLrygs11K63F_7mldWz4veNx6Llg6hI2yZs8LKHo',
-        tags: [
-          {
-            name: 'Action',
-            value: 'Get-Pools',
-          },
-        ],
+      // OLD LOGIC - commented out due to limitations with fee detection
+      // const result = await dryrun({
+      //   process: '3XBGLrygs11K63F_7mldWz4veNx6Llg6hI2yZs8LKHo',
+      //   tags: [
+      //     {
+      //       name: 'Action',
+      //       value: 'Get-Pools',
+      //     },
+      //   ],
+      // });
+
+      // const poolsData = (result as DryrunResult).Messages[0]?.Data;
+      // if (!poolsData) return [];
+
+      // const pools: BotegaPool[] = [];
+      // Object.entries(JSON.parse(poolsData)).forEach(
+      //   ([poolId, tokens]: [poolId: string, tokens: string[]]) => {
+      //     if (Array.isArray(tokens) && tokens.length === 2) {
+      //       pools.push({
+      //         poolId,
+      //         tokenA: tokens[0],
+      //         tokenB: tokens[1],
+      //       });
+      //     }
+      //   },
+      // );
+
+      // return pools;
+
+      const poolsByPair = new Map<string, BotegaPoolData>();
+
+      HARDCODED_BOTEGA_POOLS.forEach((pool) => {
+        if (pool.pool_fee_bps === null) {
+          return;
+        }
+
+        const tokens = [pool.token0, pool.token1].sort();
+        const pairKey = `${tokens[0]}-${tokens[1]}`;
+
+        const existingPool = poolsByPair.get(pairKey);
+        if (
+          !existingPool ||
+          existingPool.pool_fee_bps === null ||
+          pool.pool_fee_bps > existingPool.pool_fee_bps
+        ) {
+          poolsByPair.set(pairKey, pool);
+        }
       });
 
-      const poolsData = (result as DryrunResult).Messages[0]?.Data;
-      if (!poolsData) return [];
-
-      const pools: BotegaPool[] = [];
-      Object.entries(JSON.parse(poolsData)).forEach(
-        ([poolId, tokens]: [poolId: string, tokens: string[]]) => {
-          if (Array.isArray(tokens) && tokens.length === 2) {
-            pools.push({
-              poolId,
-              tokenA: tokens[0],
-              tokenB: tokens[1],
-            });
-          }
-        },
+      const pools: BotegaPool[] = Array.from(poolsByPair.values()).map(
+        (pool) => ({
+          poolId: pool.amm_process,
+          tokenA: pool.token0,
+          tokenB: pool.token1,
+        }),
       );
 
+      this.logger.log(
+        `Loaded ${pools.length} Botega pools from hardcoded data`,
+      );
       return pools;
     } catch (error) {
       this.logger.error('Error fetching Botega pools:', error);
