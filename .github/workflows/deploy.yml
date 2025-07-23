@@ -4,6 +4,9 @@ on:
   workflow_call:
     inputs: {}
 
+  workflow_dispatch:
+    inputs: {}
+
 jobs:
   build-and-deploy:
     runs-on: [self-hosted, vento-api]
