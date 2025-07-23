@@ -1,0 +1,36 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          sudo docker build -t vento-api:latest .
+
+      - name: Stop and remove old containers
+        run: |
+          # Stop any running containers with this name
+          sudo docker stop vento-api || true
+          # Remove old containers
+          sudo docker rm vento-api || true
+          # Remove old images (keep latest)
+          sudo docker image prune -f
+
+      - name: Run new container
+        run: |
+          sudo docker run -d \
+            --name vento-api \
+            -p 3000:3000 \
+            -e BASE64_PRIVATE_KEY=${{ secrets.BASE64_PRIVATE_KEY }} \
+            vento-api:latest

@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createSigner } from '@permaweb/aoconnect';
-import * as fs from 'fs';
 
 @Injectable()
 export class WalletService {
@@ -8,14 +7,16 @@ export class WalletService {
   private readonly signer: (...args: unknown[]) => unknown;
 
   constructor() {
-    const walletPath = process.env.PATH_TO_WALLET;
+    const base64PrivateKey = process.env.BASE64_PRIVATE_KEY;
 
-    if (!walletPath) {
-      throw new Error('PATH_TO_WALLET environment variable is not set');
+    if (!base64PrivateKey) {
+      throw new Error('BASE64_PRIVATE_KEY environment variable is not set');
     }
 
     try {
-      const wallet = JSON.parse(fs.readFileSync(walletPath, 'utf8')) as string;
+      const wallet = JSON.parse(
+        Buffer.from(base64PrivateKey, 'base64').toString('utf8'),
+      ) as string;
       this.signer = createSigner(wallet);
       this.logger.log('Wallet signer initialized successfully');
     } catch (error) {
