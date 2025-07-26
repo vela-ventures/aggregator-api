@@ -7,6 +7,7 @@ import { SwapModule } from './swap/swap.module';
 import { OrdersModule } from './orders/orders.module';
 import { MessagesModule } from './messages/messages.module';
 import { ConfigModule } from '@nestjs/config';
+import { AppConfigModule } from './app-config';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ConfigModule } from '@nestjs/config';
     SwapModule,
     OrdersModule,
     MessagesModule,
+    AppConfigModule,
   ],
   controllers: [AppController],
   providers: [],
