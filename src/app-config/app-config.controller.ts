@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { AGGREGATOR_ID } from './constants';
 
 @Controller('/app-config')
 export class AppConfigController {
@@ -7,7 +8,7 @@ export class AppConfigController {
   @Get()
   getConfig() {
     return {
-      aggregatorProcess: 'cEZfKpbSfHYrmaOFGzn7CvHgWdHueZEn9DHq-aLpCms',
+      aggregatorProcess: AGGREGATOR_ID,
     };
   }
 }
