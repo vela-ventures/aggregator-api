@@ -1,7 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { dryrun } from '@permaweb/aoconnect';
 import { RoutesService } from '../routes/routes.service';
 import { EstimatesService } from '../estimates/estimates.service';
 import { PoolsService } from '../pools/pools.service';
+import { AGGREGATOR_ID } from '../app-config';
 import type { SwapQuoteResponse, QuickQuoteResponse } from '../shared/types';
 
 @Injectable()
@@ -114,6 +116,46 @@ export class SwapService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Failed to get quick quote:', error);
       throw error;
+    }
+  }
+
+  async getSwapStatus(swapId: string) {
+    try {
+      const statusResult = await dryrun({
+        process: AGGREGATOR_ID,
+        data: '',
+        tags: [
+          { name: 'Action', value: 'Status' },
+          { name: 'Swap-Id', value: swapId },
+        ],
+      });
+
+      this.logger.log('Status result for swap ID:', swapId);
+      if (
+        statusResult?.Messages &&
+        statusResult?.Messages[0] &&
+        statusResult?.Messages[0].Tags
+      ) {
+        const message = statusResult.Messages[0];
+        const tagArray: { name: string; value: string }[] = message.Tags || [];
+
+        const responseTags = Object.fromEntries(
+          tagArray.map((tag) => [tag.name, tag.value])
+        );
+
+        if (responseTags['Swap-status']) {
+          return {
+            swapId,
+            status: responseTags['Swap-status'],
+            ...responseTags,
+          };
+        }
+      }
+
+      throw new Error('Status not available');
+    } catch (error) {
+      this.logger.error('Error getting swap status:', error);
+      throw new Error('Failed to get swap status');
     }
   }
 

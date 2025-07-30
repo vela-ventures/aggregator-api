@@ -186,4 +186,12 @@ export class SwapController {
       );
     }
   }
+
+  @Get('status')
+  async getSwapStatus(@Query('swapId') swapId: string) {
+    if (!swapId) {
+      throw new Error('Swap ID is required');
+    }
+    return await this.swapService.getSwapStatus(swapId);
+  }
 }

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OrdersService } from '../orders/orders.service';
+import { AGGREGATOR_ID } from '../app-config';
 import type {
   RouteWithEstimate,
   DryrunResult,
@@ -45,8 +46,6 @@ export interface TransferMessageRequest {
 @Injectable()
 export class MessagesService {
   private readonly logger = new Logger(MessagesService.name);
-  private readonly DEMO_AGGREGATOR_ID =
-    'cEZfKpbSfHYrmaOFGzn7CvHgWdHueZEn9DHq-aLpCms';
 
   constructor(private readonly ordersService: OrdersService) {}
 
@@ -143,7 +142,7 @@ export class MessagesService {
         },
         {
           name: 'Recipient',
-          value: this.DEMO_AGGREGATOR_ID,
+          value: AGGREGATOR_ID,
         },
         {
           name: 'X-Botega-Pool-Id',
@@ -199,7 +198,7 @@ export class MessagesService {
         },
         {
           name: 'Recipient',
-          value: this.DEMO_AGGREGATOR_ID,
+          value: AGGREGATOR_ID,
         },
         {
           name: 'Quantity',
@@ -277,7 +276,7 @@ export class MessagesService {
           name: 'X-Note-Settler',
         },
         {
-          value: this.DEMO_AGGREGATOR_ID,
+          value: AGGREGATOR_ID,
           name: 'Recipient',
         },
         {
