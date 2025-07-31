@@ -58,11 +58,9 @@ export class EstimatesService {
           return {
             ...route,
             estimatedOutput: secondEstimate.out,
-            estimatedFee:
-              route.dex === 'permaswap'
-                ? secondEstimate.fee
-                : firstEstimate.fee + secondEstimate.fee,
+            estimatedFee: secondEstimate.fee,
             intermediateOutput: firstEstimate.out,
+            intermediateEstimatedFee: firstEstimate.fee,
           };
         }
         return null;

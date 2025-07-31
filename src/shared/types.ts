@@ -23,6 +23,7 @@ export interface RouteWithEstimate {
   estimatedOutput: number;
   intermediateOutput?: number;
   estimatedFee: number;
+  intermediateEstimatedFee?: number;
   intermediateTokenId?: string;
   error?: string;
 }
