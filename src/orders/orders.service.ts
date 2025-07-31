@@ -118,7 +118,7 @@ export class OrdersService {
           fromTokenId,
           toTokenId: route.intermediateTokenId,
           amount,
-          minAmount: Number(route.intermediateOutput) * 0.98,
+          minAmount: Number(route.intermediateOutput) * 0.995,
           settleAddress: 'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw',
         });
         orders.push(firstOrder);
@@ -127,8 +127,8 @@ export class OrdersService {
           poolId: route.pools[1].poolId,
           fromTokenId: route.intermediateTokenId,
           toTokenId,
-          amount: route.intermediateOutput * 0.95,
-          minAmount: minAmount * 0.95,
+          amount: route.intermediateOutput * 0.99,
+          minAmount: minAmount * 0.99,
           settleAddress: 'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw',
         });
         orders.push(secondOrder);
