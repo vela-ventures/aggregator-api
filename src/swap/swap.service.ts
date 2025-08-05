@@ -4,7 +4,12 @@ import { RoutesService } from '../routes/routes.service';
 import { EstimatesService } from '../estimates/estimates.service';
 import { PoolsService } from '../pools/pools.service';
 import { AGGREGATOR_ID } from '../app-config';
-import type { SwapQuoteResponse, QuickQuoteResponse } from '../shared/types';
+import type {
+  SwapQuoteResponse,
+  QuickQuoteResponse,
+  ReverseSwapEstimate,
+  ReverseQuoteResponse,
+} from '../shared/types';
 
 @Injectable()
 export class SwapService implements OnModuleInit {
@@ -19,7 +24,6 @@ export class SwapService implements OnModuleInit {
   async onModuleInit() {
     this.logger.log('SwapService initialized');
 
-    // Pre-warm the cache on startup
     try {
       await this.poolsService.getAllPools();
       this.logger.log('Pool cache pre-warmed successfully');
@@ -28,9 +32,6 @@ export class SwapService implements OnModuleInit {
     }
   }
 
-  /**
-   * Get comprehensive swap quote with all routes and estimates
-   */
   async getSwapQuote(
     fromTokenId: string,
     toTokenId: string,
@@ -40,13 +41,11 @@ export class SwapService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      // Find all possible routes
       const allRoutes = await this.routesService.findAllRoutes(
         fromTokenId,
         toTokenId,
       );
 
-      // Calculate estimates for all routes and sort by best output
       const routesWithEstimates =
         await this.estimatesService.calculateRouteEstimates(
           allRoutes,
@@ -75,9 +74,6 @@ export class SwapService implements OnModuleInit {
     }
   }
 
-  /**
-   * Get quick quote with just the best route
-   */
   async getQuickQuote(
     fromTokenId: string,
     toTokenId: string,
@@ -140,7 +136,7 @@ export class SwapService implements OnModuleInit {
         const tagArray: { name: string; value: string }[] = message.Tags || [];
 
         const responseTags = Object.fromEntries(
-          tagArray.map((tag) => [tag.name, tag.value])
+          tagArray.map((tag) => [tag.name, tag.value]),
         );
 
         if (responseTags['Swap-status']) {
@@ -159,9 +155,6 @@ export class SwapService implements OnModuleInit {
     }
   }
 
-  /**
-   * Get all available pools
-   */
   async getAllPools(forceRefresh = false) {
     try {
       return await this.poolsService.getAllPools(forceRefresh);
@@ -171,18 +164,79 @@ export class SwapService implements OnModuleInit {
     }
   }
 
-  /**
-   * Get cache status
-   */
   getCacheStatus() {
     return this.poolsService.getCacheStatus();
   }
 
-  /**
-   * Invalidate cache manually
-   */
   invalidateCache() {
     this.poolsService.invalidateCache();
     this.logger.log('Pool cache invalidated');
+  }
+
+  async getReverseQuote(
+    fromTokenId: string,
+    toTokenId: string,
+    desiredOutput: number,
+    userAddress?: string,
+  ): Promise<ReverseQuoteResponse> {
+    const startTime = Date.now();
+
+    try {
+      const allRoutes = await this.routesService.findAllRoutes(
+        fromTokenId,
+        toTokenId,
+      );
+
+      const routesWithReverseEstimates =
+        await this.estimatesService.calculateReverseRouteEstimates(
+          allRoutes,
+          fromTokenId,
+          toTokenId,
+          desiredOutput,
+          userAddress,
+        );
+
+      const executionTime = Date.now() - startTime;
+
+      return {
+        fromTokenId,
+        toTokenId,
+        desiredOutput,
+        routes: routesWithReverseEstimates,
+        bestRoute:
+          routesWithReverseEstimates.length > 0
+            ? routesWithReverseEstimates[0]
+            : null,
+        totalRoutesFound: allRoutes.length,
+        validRoutesWithEstimates: routesWithReverseEstimates.length,
+        executionTime,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get reverse quote:', error);
+      throw error;
+    }
+  }
+
+  async calculateReverseEstimate(
+    fromTokenId: string,
+    toTokenId: string,
+    desiredOutput: number,
+    poolId: string,
+    dex: 'botega' | 'permaswap',
+    userAddress?: string,
+  ): Promise<ReverseSwapEstimate> {
+    try {
+      return await this.estimatesService.calculateReverseEstimate(
+        fromTokenId,
+        toTokenId,
+        desiredOutput,
+        poolId,
+        dex,
+        userAddress,
+      );
+    } catch (error) {
+      this.logger.error('Failed to calculate reverse estimate:', error);
+      throw error;
+    }
   }
 }

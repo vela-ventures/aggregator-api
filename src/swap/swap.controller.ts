@@ -194,4 +194,28 @@ export class SwapController {
     }
     return await this.swapService.getSwapStatus(swapId);
   }
+
+  @Post('reverse-quote')
+  async getReverseQuote(
+    @Body()
+    body: {
+      fromTokenId: string;
+      toTokenId: string;
+      desiredOutput: number;
+      userAddress?: string;
+    },
+  ) {
+    const { fromTokenId, toTokenId, desiredOutput, userAddress } = body;
+
+    if (!fromTokenId || !toTokenId || !desiredOutput) {
+      throw new Error('fromTokenId, toTokenId, and desiredOutput are required');
+    }
+
+    return this.swapService.getReverseQuote(
+      fromTokenId,
+      toTokenId,
+      desiredOutput,
+      userAddress,
+    );
+  }
 }

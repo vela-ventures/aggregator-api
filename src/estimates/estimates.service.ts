@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { dryrun } from '@permaweb/aoconnect';
 import type { Route } from '../routes/routes.service';
-import type { DryrunResult, RouteWithEstimate } from '../shared/types';
+import type {
+  DryrunResult,
+  RouteWithEstimate,
+  ReverseSwapEstimate,
+  RouteWithReverseEstimate,
+} from '../shared/types';
 
 interface SwapEstimate {
   fee: number;
@@ -87,11 +92,130 @@ export class EstimatesService {
     return validRoutes.sort((a, b) => b.estimatedOutput - a.estimatedOutput);
   }
 
+  async calculateReverseRouteEstimates(
+    routes: Route[],
+    fromTokenId: string,
+    toTokenId: string,
+    desiredOutput: number,
+    userAddress?: string,
+  ): Promise<RouteWithReverseEstimate[]> {
+    const estimatePromises = routes.map(async (route) => {
+      try {
+        if (route.hops === 1) {
+          const estimate = await this.calculateReverseEstimate(
+            fromTokenId,
+            toTokenId,
+            desiredOutput,
+            route.pools[0].poolId,
+            route.dex,
+            userAddress,
+          );
+          return {
+            ...route,
+            estimatedOutput: desiredOutput,
+            requiredInput: estimate.inputRequired,
+            estimatedFee: estimate.fee,
+            inputWithFee: estimate.inputWithFee,
+          };
+        } else if (route.intermediateTokenId) {
+          const secondEstimate = await this.calculateReverseEstimate(
+            route.intermediateTokenId,
+            toTokenId,
+            desiredOutput,
+            route.pools[1].poolId,
+            route.dex,
+            userAddress,
+          );
+
+          const firstEstimate = await this.calculateReverseEstimate(
+            fromTokenId,
+            route.intermediateTokenId,
+            secondEstimate.inputWithFee,
+            route.pools[0].poolId,
+            route.dex,
+            userAddress,
+          );
+
+          return {
+            ...route,
+            estimatedOutput: desiredOutput,
+            requiredInput: firstEstimate.inputRequired,
+            estimatedFee: firstEstimate.fee + secondEstimate.fee,
+            inputWithFee: firstEstimate.inputWithFee,
+            intermediateInputRequired: secondEstimate.inputRequired,
+            intermediateEstimatedFee: secondEstimate.fee,
+            intermediateOutput: secondEstimate.inputWithFee,
+          };
+        }
+        return null;
+      } catch (error) {
+        this.logger.error(
+          `Error calculating reverse estimate for route:`,
+          error,
+        );
+        return null;
+      }
+    });
+
+    const routeResults = await Promise.allSettled(estimatePromises);
+    const validRoutes = routeResults
+      .map((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          return result.value;
+        }
+        this.logger.warn(`Reverse route ${index} failed or returned null`);
+        return null;
+      })
+      .filter(
+        (route): route is RouteWithReverseEstimate =>
+          route !== null && route.requiredInput > 0,
+      );
+
+    // Sort by lowest input required (best deal)
+    return validRoutes.sort((a, b) => a.inputWithFee - b.inputWithFee);
+  }
+
   getBestRoute(
     routesWithEstimates: RouteWithEstimate[],
   ): RouteWithEstimate | null {
     if (routesWithEstimates.length === 0) return null;
     return routesWithEstimates[0];
+  }
+
+  getBestReverseRoute(
+    routesWithReverseEstimates: RouteWithReverseEstimate[],
+  ): RouteWithReverseEstimate | null {
+    if (routesWithReverseEstimates.length === 0) return null;
+    return routesWithReverseEstimates[0]; // Already sorted by lowest input required
+  }
+
+  /**
+   * Calculate reverse estimate: how much input token needed to get desired output
+   */
+  async calculateReverseEstimate(
+    fromTokenId: string,
+    toTokenId: string,
+    desiredOutput: number,
+    poolId: string,
+    dex: 'botega' | 'permaswap',
+    userAddress?: string,
+  ): Promise<ReverseSwapEstimate> {
+    if (dex === 'botega') {
+      return this.calculateBotegaReverseSwap(
+        fromTokenId,
+        toTokenId,
+        desiredOutput,
+        poolId,
+        userAddress,
+      );
+    } else {
+      return this.calculatePermaswapReverseSwap(
+        fromTokenId,
+        toTokenId,
+        desiredOutput,
+        poolId,
+      );
+    }
   }
 
   private async calculateSingleHopEstimate(
@@ -183,6 +307,106 @@ export class EstimatesService {
     };
   }
 
+  private async calculateBotegaReverseSwap(
+    fromTokenId: string,
+    toTokenId: string,
+    desiredOutput: number,
+    poolId: string,
+    userAddress?: string,
+  ): Promise<ReverseSwapEstimate> {
+    const [poolInfo, reserves] = await Promise.all([
+      this.getBotegaPoolInfo(poolId),
+      this.getBotegaReserves(poolId),
+    ]);
+
+    const feeBps = Number(poolInfo.FeeBps);
+    const feeRate = feeBps / 10000;
+
+    const isFromTokenA = fromTokenId === poolInfo.TokenA;
+    const reserveFrom = isFromTokenA
+      ? reserves[poolInfo.TokenA]
+      : reserves[poolInfo.TokenB];
+    const reserveTo = isFromTokenA
+      ? reserves[poolInfo.TokenB]
+      : reserves[poolInfo.TokenA];
+
+    const k = reserveFrom * reserveTo;
+
+    const newReserveTo = reserveTo - desiredOutput;
+    if (newReserveTo <= 0) {
+      throw new Error('Desired output exceeds available liquidity');
+    }
+
+    const inputBeforeFee = (k / newReserveTo - reserveFrom) * 1.01;
+
+    const inputWithFee = inputBeforeFee / (1 - feeRate);
+    const fee = inputWithFee * feeRate;
+
+    return {
+      fee,
+      inputRequired: inputBeforeFee,
+      inputWithFee,
+    };
+  }
+
+  private async calculatePermaswapReverseSwap(
+    fromTokenId: string,
+    toTokenId: string,
+    desiredOutput: number,
+    poolId: string,
+  ): Promise<ReverseSwapEstimate> {
+    const result = await this.retryDryrun(
+      {
+        process: poolId,
+        tags: [{ name: 'Action', value: 'Info' }],
+      },
+      'Permaswap',
+    );
+
+    return this.estimateReverseSwap(
+      result,
+      desiredOutput,
+      fromTokenId,
+      toTokenId,
+    );
+  }
+
+  private async getBotegaPoolInfo(poolId: string): Promise<any> {
+    const result = await this.retryDryrun(
+      {
+        process: poolId,
+        tags: [{ name: 'Action', value: 'Info' }],
+      },
+      'Botega',
+    );
+
+    const tagArray = (result as DryrunResult).Messages[0]?.Tags || [];
+    return Object.fromEntries(tagArray.map((tag) => [tag.name, tag.value]));
+  }
+
+  private async getBotegaReserves(
+    poolId: string,
+  ): Promise<Record<string, number>> {
+    const result = await this.retryDryrun(
+      {
+        process: poolId,
+        tags: [{ name: 'Action', value: 'Get-Reserves' }],
+      },
+      'Botega',
+    );
+
+    const tagArray = (result as DryrunResult).Messages[0]?.Tags || [];
+    const reserves: Record<string, number> = {};
+
+    tagArray.forEach((tag) => {
+      if (tag.name.length > 20) {
+        reserves[tag.name] = Number(tag.value);
+      }
+    });
+
+    return reserves;
+  }
+
   private async retryDryrun(
     params: { process: string; tags: { name: string; value: string }[] },
     dexName: string,
@@ -235,6 +459,63 @@ export class EstimatesService {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
+  }
+
+  private estimateReverseSwap(
+    response: DryrunResult,
+    desiredOutput: number,
+    inputTokenId: string,
+    outputTokenId: string,
+  ): ReverseSwapEstimate {
+    const tags: Record<string, string> = {};
+    response.Messages[0].Tags.forEach(
+      (tag: { name: string; value: string }) => {
+        tags[tag.name] = tag.value;
+      },
+    );
+
+    const reserveX = Number(tags.PX);
+    const reserveY = Number(tags.PY);
+    const feeRate = Number(tags.Fee) / 100000;
+    const tokenYId = tags.Y;
+
+    const isXtoY = inputTokenId === tokenYId;
+
+    let inputRequired: number;
+
+    if (isXtoY) {
+      const k = reserveX * reserveY;
+      const newReserveX = reserveX - desiredOutput;
+
+      if (newReserveX <= 0) {
+        throw new Error('Desired output exceeds available liquidity');
+      }
+
+      const inputBeforeFee = k / newReserveX - reserveY;
+      inputRequired = inputBeforeFee / (1 - feeRate);
+    } else {
+      const k = reserveX * reserveY;
+      const newReserveY = reserveY - desiredOutput;
+
+      if (newReserveY <= 0) {
+        throw new Error('Desired output exceeds available liquidity');
+      }
+
+      const inputBeforeFee = k / newReserveY - reserveX;
+      inputRequired = inputBeforeFee / (1 - feeRate);
+    }
+
+    const fee = inputRequired * feeRate;
+    const inputBeforeFee = inputRequired - fee;
+
+    // Add 1% safety margin
+    const inputWithSafety = inputRequired * 1.02;
+
+    return {
+      fee,
+      inputRequired: inputBeforeFee,
+      inputWithFee: inputWithSafety,
+    };
   }
 
   private estimateSwap(

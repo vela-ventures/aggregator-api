@@ -28,6 +28,37 @@ export interface RouteWithEstimate {
   error?: string;
 }
 
+export interface ReverseSwapEstimate {
+  fee: number;
+  inputRequired: number;
+  inputWithFee: number;
+}
+
+export interface ReverseQuoteResponse {
+  fromTokenId: string;
+  toTokenId: string;
+  desiredOutput: number;
+  routes: RouteWithReverseEstimate[];
+  bestRoute: RouteWithReverseEstimate | null;
+  totalRoutesFound: number;
+  validRoutesWithEstimates: number;
+  executionTime: number;
+}
+
+export interface RouteWithReverseEstimate {
+  dex: 'botega' | 'permaswap';
+  pools: RoutePool[];
+  hops: number;
+  requiredInput: number;
+  estimatedFee: number;
+  inputWithFee: number;
+  estimatedOutput: number;
+  intermediateInputRequired?: number;
+  intermediateEstimatedFee?: number;
+  intermediateTokenId?: string;
+  error?: string;
+}
+
 export interface RoutePool {
   poolId: string;
   tokenIn: string;
