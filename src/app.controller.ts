@@ -18,7 +18,7 @@ export class AppController {
       status: 'healthy',
       message: 'Swap Aggregator API is running',
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: '1.0.1',
     };
   }
 }
