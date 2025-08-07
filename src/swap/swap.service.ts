@@ -151,7 +151,10 @@ export class SwapService implements OnModuleInit {
       throw new Error('Status not available');
     } catch (error) {
       this.logger.error('Error getting swap status:', error);
-      throw new Error('Failed to get swap status');
+      return {
+        swapId,
+        status: 'not-found',
+      };
     }
   }
 
