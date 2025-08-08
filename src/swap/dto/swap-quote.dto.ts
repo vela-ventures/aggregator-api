@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsNumber,
-  IsOptional,
-  IsPositive,
-} from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsString, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SwapQuoteRequestDto {
@@ -16,11 +10,9 @@ export class SwapQuoteRequestDto {
   @IsString()
   toTokenId: string;
 
-  @ApiProperty({ description: 'Raw amount to swap (no denomination conversion)', example: 1000000000000 })
-  @IsNumber()
-  @IsPositive()
-  @Transform(({ value }) => parseFloat(value))
-  amount: number;
+  @ApiProperty({ description: 'Raw amount to swap (no denomination conversion)', example: '1000000000000' })
+  @IsString()
+  amount: string;
 
   @ApiPropertyOptional({ description: 'User wallet address' })
   @IsOptional()
@@ -53,13 +45,13 @@ export class RouteDto {
   hops: number;
 
   @ApiPropertyOptional({ description: 'Raw estimated output amount (no denomination conversion)' })
-  estimatedOutput?: number;
+  estimatedOutput?: string;
 
   @ApiPropertyOptional({ description: 'Raw intermediate output for multi-hop' })
-  intermediateOutput?: number;
+  intermediateOutput?: string;
 
   @ApiPropertyOptional({ description: 'Raw estimated fee' })
-  estimatedFee?: number;
+  estimatedFee?: string;
 
   @ApiPropertyOptional({ description: 'Intermediate token process ID for multi-hop' })
   intermediateTokenId?: string;
@@ -73,7 +65,7 @@ export class SwapQuoteResponseDto {
   toTokenId: string;
 
   @ApiProperty({ description: 'Raw input amount' })
-  inputAmount: number;
+  inputAmount: string;
 
   @ApiProperty({ description: 'All available routes', type: [RouteDto] })
   routes: RouteDto[];
@@ -104,11 +96,9 @@ export class QuickQuoteRequestDto {
   @IsString()
   toTokenId: string;
 
-  @ApiProperty({ description: 'Raw amount to swap (no denomination conversion)', example: 1000000000000 })
-  @IsNumber()
-  @IsPositive()
-  @Transform(({ value }) => parseFloat(value))
-  amount: number;
+  @ApiProperty({ description: 'Raw amount to swap (no denomination conversion)', example: '1000000000000' })
+  @IsString()
+  amount: string;
 
   @ApiPropertyOptional({ description: 'User wallet address' })
   @IsOptional()
@@ -125,10 +115,10 @@ export class QuickQuoteResponseDto {
   bestRoute: RouteDto | null;
 
   @ApiProperty({ description: 'Raw estimated output amount' })
-  estimatedOutput: number;
+  estimatedOutput: string;
 
   @ApiProperty({ description: 'Raw estimated total fee' })
-  estimatedFee: number;
+  estimatedFee: string;
 
   @ApiProperty({ description: 'Execution time in milliseconds' })
   executionTime: number;

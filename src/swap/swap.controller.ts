@@ -201,7 +201,7 @@ export class SwapController {
     body: {
       fromTokenId: string;
       toTokenId: string;
-      desiredOutput: number;
+      desiredOutput: string;
       userAddress?: string;
     },
   ) {

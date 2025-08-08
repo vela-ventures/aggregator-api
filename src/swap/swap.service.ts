@@ -35,7 +35,7 @@ export class SwapService implements OnModuleInit {
   async getSwapQuote(
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
+    amountStr: string,
     userAddress?: string,
   ): Promise<SwapQuoteResponse> {
     const startTime = Date.now();
@@ -45,6 +45,8 @@ export class SwapService implements OnModuleInit {
         fromTokenId,
         toTokenId,
       );
+
+      const amount = Number(amountStr);
 
       const routesWithEstimates =
         await this.estimatesService.calculateRouteEstimates(
@@ -56,11 +58,10 @@ export class SwapService implements OnModuleInit {
         );
 
       const executionTime = Date.now() - startTime;
-
       return {
         fromTokenId,
         toTokenId,
-        inputAmount: amount,
+        inputAmount: amountStr,
         routes: routesWithEstimates,
         bestRoute:
           routesWithEstimates.length > 0 ? routesWithEstimates[0] : null,
@@ -77,7 +78,7 @@ export class SwapService implements OnModuleInit {
   async getQuickQuote(
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
+    amountStr: string,
     userAddress?: string,
   ): Promise<QuickQuoteResponse> {
     const startTime = Date.now();
@@ -90,6 +91,7 @@ export class SwapService implements OnModuleInit {
       );
 
       // Calculate estimates for all routes
+      const amount = Number(amountStr);
       const routesWithEstimates =
         await this.estimatesService.calculateRouteEstimates(
           routes,
@@ -105,8 +107,8 @@ export class SwapService implements OnModuleInit {
 
       return {
         bestRoute,
-        estimatedOutput: bestRoute?.estimatedOutput || 0,
-        estimatedFee: bestRoute?.estimatedFee || 0,
+        estimatedOutput: (bestRoute?.estimatedOutput || 0).toString(),
+        estimatedFee: (bestRoute?.estimatedFee || 0).toString(),
         executionTime,
       };
     } catch (error) {
@@ -179,7 +181,7 @@ export class SwapService implements OnModuleInit {
   async getReverseQuote(
     fromTokenId: string,
     toTokenId: string,
-    desiredOutput: number,
+    desiredOutputStr: string,
     userAddress?: string,
   ): Promise<ReverseQuoteResponse> {
     const startTime = Date.now();
@@ -190,6 +192,7 @@ export class SwapService implements OnModuleInit {
         toTokenId,
       );
 
+      const desiredOutput = Number(desiredOutputStr);
       const routesWithReverseEstimates =
         await this.estimatesService.calculateReverseRouteEstimates(
           allRoutes,
@@ -204,7 +207,7 @@ export class SwapService implements OnModuleInit {
       return {
         fromTokenId,
         toTokenId,
-        desiredOutput,
+        desiredOutput: desiredOutputStr,
         routes: routesWithReverseEstimates,
         bestRoute:
           routesWithReverseEstimates.length > 0

@@ -11,8 +11,8 @@ export interface SwapMessageRequest {
   route: RouteWithEstimate;
   fromTokenId: string;
   toTokenId: string;
-  amount: number;
-  minAmount: number;
+  amount: string;
+  minAmount: string;
   userAddress: string;
 }
 
@@ -27,8 +27,8 @@ export interface SwapMessageResponse {
   route: RouteWithEstimate;
   fromTokenId: string;
   toTokenId: string;
-  amount: number;
-  minAmount: number;
+  amount: string;
+  minAmount: string;
   userAddress: string;
   timestamp: number;
   status: 'unsigned' | 'ready_to_sign';
@@ -38,7 +38,7 @@ export interface SwapMessageResponse {
 
 export interface TransferMessageRequest {
   fromTokenId: string;
-  amount: number;
+  amount: string;
   noteIds: string[];
   noteSettle: string;
 }
@@ -129,8 +129,8 @@ export class MessagesService {
   private prepareBotegaSingleHopMessage(
     route: RouteWithEstimate,
     fromTokenId: string,
-    amount: number,
-    minAmount: number,
+    amount: string,
+    minAmount: string,
     userAddress: string,
   ): UnsignedMessage {
     const unsignedMessage: UnsignedMessage = {
@@ -148,18 +148,12 @@ export class MessagesService {
           name: 'X-Botega-Pool-Id',
           value: route.pools[0].poolId,
         },
-        {
-          name: 'Quantity',
-          value: Math.floor(amount).toString(),
-        },
+        { name: 'Quantity', value: amount },
         {
           name: 'X-Action',
           value: 'Swap',
         },
-        {
-          name: 'X-Expected-Min-Output',
-          value: Math.floor(minAmount).toString(),
-        },
+        { name: 'X-Expected-Min-Output', value: minAmount },
         {
           name: 'X-Swap-Data-Agr',
           value: 'SwapRequest',
@@ -181,8 +175,8 @@ export class MessagesService {
     route: RouteWithEstimate,
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
-    minAmount: number,
+    amount: string,
+    minAmount: string,
     userAddress: string,
   ): UnsignedMessage {
     if (!route.intermediateOutput) {
@@ -200,10 +194,7 @@ export class MessagesService {
           name: 'Recipient',
           value: AGGREGATOR_ID,
         },
-        {
-          name: 'Quantity',
-          value: Math.floor(amount).toString(),
-        },
+        { name: 'Quantity', value: amount },
         {
           name: 'X-Action',
           value: 'Multi-Hop-Swap',
@@ -215,14 +206,11 @@ export class MessagesService {
             pools: route.pools,
             hops: route.hops,
             intermediateTokenId: route.intermediateTokenId,
-            intermediateOutput: Math.floor(route.intermediateOutput).toString(),
+            intermediateOutput: Math.floor(Number(route.intermediateOutput)).toString(),
             finalToken: toTokenId,
           }),
         },
-        {
-          name: 'X-Expected-Min-Output',
-          value: Math.floor(minAmount).toString(),
-        },
+        { name: 'X-Expected-Min-Output', value: minAmount },
         {
           name: 'X-Swap-Data-Agr',
           value: 'SwapRequest',
@@ -242,7 +230,7 @@ export class MessagesService {
 
   private preparePermaswapTransferMessage(
     fromTokenId: string,
-    amount: number,
+    amount: string,
     noteIds: string[],
     noteSettle: string,
   ): UnsignedMessage {
@@ -259,10 +247,7 @@ export class MessagesService {
           name: 'Timestamp',
           value: currentTimestamp.toString(),
         },
-        {
-          value: Math.floor(amount).toString(),
-          name: 'Quantity',
-        },
+        { value: amount, name: 'Quantity' },
         {
           value: JSON.stringify(noteIds),
           name: 'X-Ffp-Note-Ids',

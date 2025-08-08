@@ -8,7 +8,7 @@ export interface Token {
 export interface SwapQuoteResponse {
   fromTokenId: string;
   toTokenId: string;
-  inputAmount: number;
+  inputAmount: string;
   routes: RouteWithEstimate[];
   bestRoute: RouteWithEstimate | null;
   totalRoutesFound: number;
@@ -20,10 +20,10 @@ export interface RouteWithEstimate {
   dex: 'botega' | 'permaswap';
   pools: RoutePool[];
   hops: number;
-  estimatedOutput: number;
-  intermediateOutput?: number;
-  estimatedFee: number;
-  intermediateEstimatedFee?: number;
+  estimatedOutput: string;
+  intermediateOutput?: string;
+  estimatedFee: string;
+  intermediateEstimatedFee?: string;
   intermediateTokenId?: string;
   error?: string;
 }
@@ -37,7 +37,7 @@ export interface ReverseSwapEstimate {
 export interface ReverseQuoteResponse {
   fromTokenId: string;
   toTokenId: string;
-  desiredOutput: number;
+  desiredOutput: string;
   routes: RouteWithReverseEstimate[];
   bestRoute: RouteWithReverseEstimate | null;
   totalRoutesFound: number;
@@ -49,12 +49,12 @@ export interface RouteWithReverseEstimate {
   dex: 'botega' | 'permaswap';
   pools: RoutePool[];
   hops: number;
-  requiredInput: number;
-  estimatedFee: number;
-  inputWithFee: number;
-  estimatedOutput: number;
-  intermediateInputRequired?: number;
-  intermediateEstimatedFee?: number;
+  requiredInput: string;
+  estimatedFee: string;
+  inputWithFee: string;
+  estimatedOutput: string;
+  intermediateInputRequired?: string;
+  intermediateEstimatedFee?: string;
   intermediateTokenId?: string;
   error?: string;
 }
@@ -68,8 +68,8 @@ export interface RoutePool {
 
 export interface QuickQuoteResponse {
   bestRoute: RouteWithEstimate | null;
-  estimatedOutput: number;
-  estimatedFee: number;
+  estimatedOutput: string;
+  estimatedFee: string;
   executionTime: number;
 }
 

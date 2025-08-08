@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNumber,
-  IsArray,
-  IsPositive,
-  ValidateNested,
-  IsOptional,
-} from 'class-validator';
+import { IsString, IsArray, ValidateNested, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { RouteWithEstimate, NoteStatus } from '../../shared/types';
@@ -43,21 +36,13 @@ export class SwapMessageDto {
   @IsString()
   toTokenId: string;
 
-  @ApiProperty({
-    description: 'Raw amount to swap (no denomination conversion)',
-    example: 1000000000000,
-  })
-  @IsNumber()
-  @IsPositive()
-  amount: number;
+  @ApiProperty({ description: 'Raw amount to swap (no denomination conversion)', example: '1000000000000' })
+  @IsString()
+  amount: string;
 
-  @ApiProperty({
-    description: 'Raw minimum amount to receive',
-    example: 950000000000,
-  })
-  @IsNumber()
-  @IsPositive()
-  minAmount: number;
+  @ApiProperty({ description: 'Raw minimum amount to receive', example: '950000000000' })
+  @IsString()
+  minAmount: string;
 
   @ApiProperty({ description: 'User wallet address' })
   @IsString()
@@ -69,13 +54,9 @@ export class TransferMessageDto {
   @IsString()
   fromTokenId: string;
 
-  @ApiProperty({
-    description: 'Raw amount to transfer (no denomination conversion)',
-    example: 1000000000000,
-  })
-  @IsNumber()
-  @IsPositive()
-  amount: number;
+  @ApiProperty({ description: 'Raw amount to transfer (no denomination conversion)', example: '1000000000000' })
+  @IsString()
+  amount: string;
 
   @ApiProperty({ description: 'Note IDs for the transfer', type: [String] })
   @IsArray()
@@ -105,10 +86,10 @@ export class SwapMessageResponseDto {
   toTokenId: string;
 
   @ApiProperty({ description: 'Raw amount being swapped' })
-  amount: number;
+  amount: string;
 
   @ApiProperty({ description: 'Raw minimum amount to receive' })
-  minAmount: number;
+  minAmount: string;
 
   @ApiProperty({ description: 'User wallet address' })
   userAddress: string;
@@ -144,7 +125,7 @@ export class TransferMessageResponseDto {
   fromTokenId: string;
 
   @ApiProperty({ description: 'Raw amount transferred' })
-  amount: number;
+  amount: string;
 
   @ApiProperty({
     description: 'Note IDs used for the transfer',

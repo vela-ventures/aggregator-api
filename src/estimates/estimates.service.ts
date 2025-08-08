@@ -12,6 +12,8 @@ interface SwapEstimate {
   fee: number;
   out: number;
   outWithFee: number;
+  feeRaw?: string;
+  outRaw?: string;
 }
 
 @Injectable()
@@ -38,8 +40,10 @@ export class EstimatesService {
           );
           return {
             ...route,
-            estimatedOutput: estimate.out,
-            estimatedFee: estimate.fee,
+            estimatedOutput:
+              estimate.outRaw ?? this.toNonExponentialString(estimate.out),
+            estimatedFee:
+              estimate.feeRaw ?? this.toNonExponentialString(estimate.fee),
           };
         } else if (route.intermediateTokenId) {
           const firstEstimate = await this.calculateSingleHopEstimate(
@@ -62,10 +66,18 @@ export class EstimatesService {
 
           return {
             ...route,
-            estimatedOutput: secondEstimate.out,
-            estimatedFee: secondEstimate.fee,
-            intermediateOutput: firstEstimate.out,
-            intermediateEstimatedFee: firstEstimate.fee,
+            estimatedOutput:
+              secondEstimate.outRaw ??
+              this.toNonExponentialString(secondEstimate.out),
+            estimatedFee:
+              secondEstimate.feeRaw ??
+              this.toNonExponentialString(secondEstimate.fee),
+            intermediateOutput:
+              firstEstimate.outRaw ??
+              this.toNonExponentialString(firstEstimate.out),
+            intermediateEstimatedFee:
+              firstEstimate.feeRaw ??
+              this.toNonExponentialString(firstEstimate.fee),
           };
         }
         return null;
@@ -84,12 +96,16 @@ export class EstimatesService {
         this.logger.warn(`Route ${index} failed or returned null`);
         return null;
       })
-      .filter(
-        (route): route is RouteWithEstimate =>
-          route !== null && route.estimatedOutput > 0,
-      );
+      .filter((route): route is RouteWithEstimate => {
+        if (!route) return false;
+        const out = Number(route.estimatedOutput);
+        return out > 0;
+      });
 
-    return validRoutes.sort((a, b) => b.estimatedOutput - a.estimatedOutput);
+    const sorted = validRoutes
+      .filter((r): r is RouteWithEstimate => !!r)
+      .sort((a, b) => Number(b.estimatedOutput) - Number(a.estimatedOutput));
+    return sorted;
   }
 
   async calculateReverseRouteEstimates(
@@ -112,10 +128,10 @@ export class EstimatesService {
           );
           return {
             ...route,
-            estimatedOutput: desiredOutput,
-            requiredInput: estimate.inputRequired,
-            estimatedFee: estimate.fee,
-            inputWithFee: estimate.inputWithFee,
+            estimatedOutput: Math.floor(desiredOutput).toString(),
+            requiredInput: Math.floor(estimate.inputRequired).toString(),
+            estimatedFee: Math.floor(estimate.fee).toString(),
+            inputWithFee: Math.floor(estimate.inputWithFee).toString(),
           };
         } else if (route.intermediateTokenId) {
           const secondEstimate = await this.calculateReverseEstimate(
@@ -138,13 +154,13 @@ export class EstimatesService {
 
           return {
             ...route,
-            estimatedOutput: desiredOutput,
-            requiredInput: firstEstimate.inputRequired,
-            estimatedFee: firstEstimate.fee + secondEstimate.fee,
-            inputWithFee: firstEstimate.inputWithFee,
-            intermediateInputRequired: secondEstimate.inputRequired,
-            intermediateEstimatedFee: secondEstimate.fee,
-            intermediateOutput: secondEstimate.inputWithFee,
+            estimatedOutput: Math.floor(desiredOutput).toString(),
+            requiredInput: Math.floor(firstEstimate.inputRequired).toString(),
+            estimatedFee: Math.floor(firstEstimate.fee + secondEstimate.fee).toString(),
+            inputWithFee: Math.floor(firstEstimate.inputWithFee).toString(),
+            intermediateInputRequired: Math.floor(secondEstimate.inputRequired).toString(),
+            intermediateEstimatedFee: Math.floor(secondEstimate.fee).toString(),
+            intermediateOutput: Math.floor(secondEstimate.inputWithFee).toString(),
           };
         }
         return null;
@@ -166,13 +182,15 @@ export class EstimatesService {
         this.logger.warn(`Reverse route ${index} failed or returned null`);
         return null;
       })
-      .filter(
-        (route): route is RouteWithReverseEstimate =>
-          route !== null && route.requiredInput > 0,
-      );
+      .filter((route): route is RouteWithReverseEstimate => {
+        if (!route) return false;
+        return Number(route.requiredInput) > 0;
+      });
 
     // Sort by lowest input required (best deal)
-    return validRoutes.sort((a, b) => a.inputWithFee - b.inputWithFee);
+    return validRoutes.sort(
+      (a, b) => Number(a.inputWithFee) - Number(b.inputWithFee),
+    );
   }
 
   getBestRoute(
@@ -277,10 +295,14 @@ export class EstimatesService {
       tagArray.map((tag) => [tag.name, tag.value]),
     );
 
+    const feeRaw = responseTags['LP-Fee-Quantity'] || '0';
+    const outRaw = responseTags['Output'] || '0';
     return {
-      fee: Number(responseTags['LP-Fee-Quantity']) || 0,
-      out: Number(responseTags['Output']) || 0,
-      outWithFee: Number(responseTags['Output']) || 0,
+      fee: Number(feeRaw) || 0,
+      out: Number(outRaw) || 0,
+      outWithFee: Number(outRaw) || 0,
+      feeRaw,
+      outRaw,
     };
   }
 
@@ -300,10 +322,15 @@ export class EstimatesService {
 
     const permaswapOutput = this.estimateSwap(result, amount, toTokenId);
 
+    const outRaw = this.toNonExponentialString(permaswapOutput.outputAmount);
+    const fee = permaswapOutput.outputAmount * 0.0005;
+    const feeRaw = this.toNonExponentialString(fee);
     return {
-      fee: permaswapOutput.outputAmount * 0.0005,
+      fee,
       out: permaswapOutput.outputAmount,
       outWithFee: permaswapOutput.outputAmount,
+      feeRaw,
+      outRaw,
     };
   }
 
@@ -571,5 +598,26 @@ export class EstimatesService {
       exchangeRate,
       fee,
     };
+  }
+
+  private toNonExponentialString(value: number): string {
+    if (!isFinite(value)) return '0';
+    // Convert to a string without exponential notation
+    const str = value.toString();
+    if (!/e/i.test(str)) return Math.floor(value).toString();
+    // Use BigInt via integer rounding to avoid floating exponent formats
+    const [mantissa, exponent] = str.toLowerCase().split('e');
+    const exp = Number(exponent);
+    const [intPart, fracPart = ''] = mantissa.split('.');
+    const digits = intPart + fracPart;
+    if (exp >= 0) {
+      const zeros = exp - fracPart.length;
+      return zeros >= 0
+        ? (digits + '0'.repeat(zeros)).replace(/^0+/, '') || '0'
+        : (intPart + fracPart.slice(0, fracPart.length + exp)).replace(/^0+/, '') || '0';
+    } else {
+      // Negative exponent: number < 1; floor to 0 in raw integer context
+      return '0';
+    }
   }
 }

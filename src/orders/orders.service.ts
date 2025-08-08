@@ -7,8 +7,8 @@ export interface OrderRequest {
   poolId: string;
   fromTokenId: string;
   toTokenId: string;
-  amount: number;
-  minAmount: number;
+  amount: string;
+  minAmount: string;
   settleAddress?: string;
 }
 
@@ -17,8 +17,8 @@ export interface OrderResponse {
   poolId: string;
   fromTokenId: string;
   toTokenId: string;
-  amount: number;
-  minAmount: number;
+  amount: string;
+  minAmount: string;
   timestamp: number;
 }
 
@@ -27,6 +27,13 @@ export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
   constructor(private readonly walletService: WalletService) {}
+
+  private mulBps(amount: string, bps: number): string {
+    // amount is a raw integer string; bps in [0..10000]
+    const a = BigInt(amount);
+    const b = BigInt(bps);
+    return ((a * b) / BigInt(10000)).toString();
+  }
 
   async createPermaswapOrder(
     orderRequest: OrderRequest,
@@ -44,14 +51,8 @@ export class OrdersService {
             name: 'Action',
             value: 'RequestOrder',
           },
-          {
-            name: 'AmountIn',
-            value: Math.floor(amount).toString(),
-          },
-          {
-            name: 'AmountOut',
-            value: Math.floor(minAmount).toString(),
-          },
+          { name: 'AmountIn', value: amount },
+          { name: 'AmountOut', value: minAmount },
           {
             name: 'TokenIn',
             value: fromTokenId,
@@ -89,8 +90,8 @@ export class OrdersService {
     route: RouteWithEstimate,
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
-    minAmount: number,
+    amount: string,
+    minAmount: string,
   ): Promise<OrderResponse[]> {
     if (route.dex !== 'permaswap') {
       throw new Error('This function is only for Permaswap routes');
@@ -105,7 +106,7 @@ export class OrdersService {
           fromTokenId,
           toTokenId,
           amount,
-          minAmount: minAmount * 0.995,
+          minAmount: this.mulBps(minAmount, 9950),
         });
         orders.push(order);
       } else if (
@@ -118,7 +119,7 @@ export class OrdersService {
           fromTokenId,
           toTokenId: route.intermediateTokenId,
           amount,
-          minAmount: Number(route.intermediateOutput) * 0.995,
+          minAmount: this.mulBps(Math.floor(Number(route.intermediateOutput)).toString(), 9950),
           settleAddress: 'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw',
         });
         orders.push(firstOrder);
@@ -127,8 +128,8 @@ export class OrdersService {
           poolId: route.pools[1].poolId,
           fromTokenId: route.intermediateTokenId,
           toTokenId,
-          amount: route.intermediateOutput * 0.99,
-          minAmount: minAmount * 0.99,
+          amount: this.mulBps(Math.floor(Number(route.intermediateOutput)).toString(), 9900),
+          minAmount: this.mulBps(minAmount, 9900),
           settleAddress: 'IAcoo9WrT3CF-rhAxoYd0OFrzAgCLz3kWETQ4QdDLpw',
         });
         orders.push(secondOrder);

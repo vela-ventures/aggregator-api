@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsNumber,
-  IsOptional,
-  IsPositive,
-  ValidateNested,
-} from 'class-validator';
+import { IsString, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { RouteWithEstimate } from '../../shared/types';
@@ -24,19 +18,17 @@ export class CreateOrderDto {
 
   @ApiProperty({
     description: 'Raw amount to swap (no denomination conversion)',
-    example: 1000000000000,
+    example: '1000000000000',
   })
-  @IsNumber()
-  @IsPositive()
-  amount: number;
+  @IsString()
+  amount: string;
 
   @ApiProperty({
     description: 'Raw minimum amount to receive',
-    example: 950000000000,
+    example: '950000000000',
   })
-  @IsNumber()
-  @IsPositive()
-  minAmount: number;
+  @IsString()
+  minAmount: string;
 
   @ApiPropertyOptional({ description: 'Settle address for the order' })
   @IsOptional()
@@ -59,17 +51,15 @@ export class CreateMultipleOrdersDto {
   toTokenId: string;
 
   @ApiProperty({ description: 'Raw amount to swap', example: 1000000000000 })
-  @IsNumber()
-  @IsPositive()
-  amount: number;
+  @IsString()
+  amount: string;
 
   @ApiProperty({
     description: 'Raw minimum amount to receive',
-    example: 950000000000,
+    example: '950000000000',
   })
-  @IsNumber()
-  @IsPositive()
-  minAmount: number;
+  @IsString()
+  minAmount: string;
 }
 
 export class OrderResponseDto {
@@ -86,10 +76,10 @@ export class OrderResponseDto {
   toTokenId: string;
 
   @ApiProperty({ description: 'Raw amount being swapped' })
-  amount: number;
+  amount: string;
 
   @ApiProperty({ description: 'Raw minimum amount to receive' })
-  minAmount: number;
+  minAmount: string;
 
   @ApiProperty({ description: 'Order creation timestamp' })
   timestamp: number;
