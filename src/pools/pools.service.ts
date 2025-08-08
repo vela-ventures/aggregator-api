@@ -14,6 +14,7 @@ interface PermaswapPool {
   x: string;
   y: string;
   fee: string;
+  poolStatus?: string;
 }
 
 export interface PoolData {
@@ -83,35 +84,80 @@ export class PoolsService {
 
   private async fetchBotegaPools(): Promise<BotegaPool[]> {
     try {
-      // OLD LOGIC - commented out due to limitations with fee detection
-      // const result = await dryrun({
-      //   process: '3XBGLrygs11K63F_7mldWz4veNx6Llg6hI2yZs8LKHo',
-      //   tags: [
-      //     {
-      //       name: 'Action',
-      //       value: 'Get-Pools',
-      //     },
-      //   ],
-      // });
+      const result = await dryrun({
+        process: 'jnIE2NhtDkuH3kfWeKf0MyvzEZdLdkRlzWtgIplm9Ic',
+        tags: [
+          {
+            name: 'Action',
+            value: 'Get-Liquidity-Table',
+          },
+        ],
+      });
 
-      // const poolsData = (result as DryrunResult).Messages[0]?.Data;
-      // if (!poolsData) return [];
+      const raw = (result as DryrunResult).Messages?.[0]?.Data;
+      if (!raw) {
+        this.logger.warn('Botega liquidity table dryrun returned empty data');
+        return this.fetchBotegaPoolsFromHardcoded();
+      }
 
-      // const pools: BotegaPool[] = [];
-      // Object.entries(JSON.parse(poolsData)).forEach(
-      //   ([poolId, tokens]: [poolId: string, tokens: string[]]) => {
-      //     if (Array.isArray(tokens) && tokens.length === 2) {
-      //       pools.push({
-      //         poolId,
-      //         tokenA: tokens[0],
-      //         tokenB: tokens[1],
-      //       });
-      //     }
-      //   },
-      // );
+      let parsed: any;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        this.logger.warn(
+          'Failed to parse Botega liquidity table JSON, using fallback',
+        );
+        return this.fetchBotegaPoolsFromHardcoded();
+      }
 
-      // return pools;
+      const table: Record<string, any> =
+        parsed &&
+        typeof parsed === 'object' &&
+        parsed.Data &&
+        typeof parsed.Data === 'object'
+          ? parsed.Data
+          : parsed;
 
+      const poolsByPair = new Map<
+        string,
+        { poolId: string; token0: string; token1: string; updatedAt?: number }
+      >();
+
+      Object.entries(table || {}).forEach(([poolId, info]) => {
+        const token0 = (info as any)?.Token_0;
+        const token1 = (info as any)?.Token_1;
+        if (!token0 || !token1) return;
+
+        const tokens = [token0, token1].sort();
+        const pairKey = `${tokens[0]}-${tokens[1]}`;
+        const existing = poolsByPair.get(pairKey);
+        const updatedAt = Number((info as any)?.Updated_At) || 0;
+        if (!existing || (existing.updatedAt || 0) < updatedAt) {
+          poolsByPair.set(pairKey, { poolId, token0, token1, updatedAt });
+        }
+      });
+
+      const pools: BotegaPool[] = Array.from(poolsByPair.values()).map((p) => ({
+        poolId: p.poolId,
+        tokenA: p.token0,
+        tokenB: p.token1,
+      }));
+
+      this.logger.log(
+        `Loaded ${pools.length} Botega pools from dryrun liquidity table`,
+      );
+      if (pools.length === 0) {
+        return this.fetchBotegaPoolsFromHardcoded();
+      }
+      return pools;
+    } catch (error) {
+      this.logger.error('Error fetching Botega pools via dryrun:', error);
+      return this.fetchBotegaPoolsFromHardcoded();
+    }
+  }
+
+  private fetchBotegaPoolsFromHardcoded(): BotegaPool[] {
+    try {
       const poolsByPair = new Map<string, BotegaPoolData>();
 
       HARDCODED_BOTEGA_POOLS.forEach((pool) => {
@@ -145,45 +191,81 @@ export class PoolsService {
       );
       return pools;
     } catch (error) {
-      this.logger.error('Error fetching Botega pools:', error);
+      this.logger.error('Error loading hardcoded Botega pools:', error);
       return [];
     }
   }
 
   private async fetchPermaswapPools(): Promise<PermaswapPool[]> {
     try {
-      const result = await dryrun({
-        process: '5G5_ftQT6f2OsmJ8EZ4-84eRcIMNEmUyH9aQSD85f9I',
-        tags: [
-          {
-            name: 'Action',
-            value: 'GetAllPools',
-          },
-        ],
-      });
-
-      const poolsData = (result as DryrunResult).Messages[0]?.Data;
-      if (!poolsData) return [];
-
-      const pools: PermaswapPool[] = [];
-
-      Object.values(JSON.parse(poolsData)).forEach(
-        (pool: { X: string; Y: string; Process: string; Fee: string }) => {
-          if (pool.X && pool.Y && pool.Process && pool.Fee) {
-            pools.push({
-              process: pool.Process,
-              x: pool.X,
-              y: pool.Y,
-              fee: pool.Fee,
-            });
-          }
-        },
+      const response = await fetch(
+        'https://api-ffpscan.permaswap.network/pools',
       );
+      if (!response.ok) {
+        throw new Error(`Permaswap API returned ${response.status}`);
+      }
+
+      const apiPools: Array<{
+        process: string;
+        x: string;
+        y: string;
+        fee: string;
+        poolStatus?: string;
+      }> = await response.json();
+
+      const pools: PermaswapPool[] = apiPools
+        .filter((p) => p.process && p.x && p.y && p.fee)
+        .map((p) => ({
+          process: p.process,
+          x: p.x,
+          y: p.y,
+          fee: p.fee,
+          poolStatus: p.poolStatus,
+        }));
 
       return pools;
-    } catch (error) {
-      this.logger.error('Error fetching Permaswap pools:', error);
-      return [];
+    } catch (apiError) {
+      this.logger.warn(
+        `Permaswap API fetch failed, falling back to dryrun: ${String(apiError)}`,
+      );
+
+      try {
+        const result = await dryrun({
+          process: '5G5_ftQT6f2OsmJ8EZ4-84eRcIMNEmUyH9aQSD85f9I',
+          tags: [
+            {
+              name: 'Action',
+              value: 'GetAllPools',
+            },
+          ],
+        });
+
+        const poolsData = (result as DryrunResult).Messages[0]?.Data;
+        if (!poolsData) return [];
+
+        const pools: PermaswapPool[] = [];
+
+        Object.values(JSON.parse(poolsData)).forEach(
+          (pool: { X: string; Y: string; Process: string; Fee: string }) => {
+            if (pool.X && pool.Y && pool.Process && pool.Fee) {
+              pools.push({
+                process: pool.Process,
+                x: pool.X,
+                y: pool.Y,
+                fee: pool.Fee,
+              });
+            }
+          },
+        );
+
+        return pools;
+      } catch (dryrunError) {
+        this.logger.error(
+          'Error fetching Permaswap pools via dryrun:',
+          dryrunError,
+        );
+        return [];
+      }
     }
   }
 

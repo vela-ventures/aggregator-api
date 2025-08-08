@@ -93,7 +93,7 @@ export class RoutesService {
 
     const permaswapPool = poolData.permaswapPools.find(
       (pool) =>
-        pool.fee === '100' &&
+        pool.poolStatus === 'certified' &&
         ((pool.x === tokenA && pool.y === tokenB) ||
           (pool.x === tokenB && pool.y === tokenA)),
     );
