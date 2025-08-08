@@ -88,6 +88,14 @@ export const PI_TOKEN = {
   processId: '4hXj_E-5fAKmo4E8KjgQvuDJKAFk9P2grhycVmISDLs',
 };
 
+export const DUMDUM_TOKEN = {
+  name: 'Dumdum',
+  ticker: 'DUMDUM',
+  denomination: 18,
+  logo: 'uKrcXiZgJg32Q1JmOyjSWlvfR0saFn-yUMHMw79lfsE',
+  processId: 'jtGHIv6MRIwUSlxVUTDwX7X0gYEGKQynIqvkelIOdL4',
+};
+
 export const AVAILABLE_TOKENS = [
   WAR_TOKEN,
   AO_TOKEN,
@@ -100,4 +108,5 @@ export const AVAILABLE_TOKENS = [
   WETH_TOKEN,
   GAME_TOKEN,
   PI_TOKEN,
+  DUMDUM_TOKEN,
 ];
