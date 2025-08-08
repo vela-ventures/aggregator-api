@@ -46,17 +46,14 @@ export class SwapService implements OnModuleInit {
         toTokenId,
       );
 
-      const amount = Number(amountStr);
-
       const routesWithEstimates =
         await this.estimatesService.calculateRouteEstimates(
           allRoutes,
           fromTokenId,
           toTokenId,
-          amount,
+          amountStr,
           userAddress,
         );
-
       const executionTime = Date.now() - startTime;
       return {
         fromTokenId,
@@ -90,14 +87,12 @@ export class SwapService implements OnModuleInit {
         toTokenId,
       );
 
-      // Calculate estimates for all routes
-      const amount = Number(amountStr);
       const routesWithEstimates =
         await this.estimatesService.calculateRouteEstimates(
           routes,
           fromTokenId,
           toTokenId,
-          amount,
+          amountStr,
           userAddress,
         );
 
@@ -107,8 +102,8 @@ export class SwapService implements OnModuleInit {
 
       return {
         bestRoute,
-        estimatedOutput: (bestRoute?.estimatedOutput || 0).toString(),
-        estimatedFee: (bestRoute?.estimatedFee || 0).toString(),
+        estimatedOutput: (bestRoute?.estimatedOutput as string) || '0',
+        estimatedFee: (bestRoute?.estimatedFee as string) || '0',
         executionTime,
       };
     } catch (error) {

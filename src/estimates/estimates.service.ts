@@ -24,7 +24,7 @@ export class EstimatesService {
     routes: Route[],
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
+    amountStr: string,
     userAddress?: string,
   ): Promise<RouteWithEstimate[]> {
     const estimatePromises = routes.map(async (route) => {
@@ -33,7 +33,7 @@ export class EstimatesService {
           const estimate = await this.calculateSingleHopEstimate(
             fromTokenId,
             toTokenId,
-            amount,
+            amountStr,
             userAddress,
             route.pools[0].poolId,
             route.dex,
@@ -49,7 +49,7 @@ export class EstimatesService {
           const firstEstimate = await this.calculateSingleHopEstimate(
             fromTokenId,
             route.intermediateTokenId,
-            amount,
+            amountStr,
             userAddress,
             route.pools[0].poolId,
             route.dex,
@@ -58,7 +58,7 @@ export class EstimatesService {
           const secondEstimate = await this.calculateSingleHopEstimate(
             route.intermediateTokenId,
             toTokenId,
-            firstEstimate.out,
+            firstEstimate.outRaw ?? Math.floor(firstEstimate.out).toString(),
             userAddress,
             route.pools[1].poolId,
             route.dex,
@@ -239,7 +239,7 @@ export class EstimatesService {
   private async calculateSingleHopEstimate(
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
+    amountStr: string,
     userAddress: string | undefined,
     poolId: string,
     dex: 'botega' | 'permaswap',
@@ -248,7 +248,7 @@ export class EstimatesService {
       return this.calculateBotegaSwap(
         fromTokenId,
         toTokenId,
-        amount,
+        amountStr,
         userAddress,
         poolId,
       );
@@ -256,7 +256,7 @@ export class EstimatesService {
       return this.calculatePermaswapSwap(
         fromTokenId,
         toTokenId,
-        amount,
+        amountStr,
         poolId,
       );
     }
@@ -265,7 +265,7 @@ export class EstimatesService {
   private async calculateBotegaSwap(
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
+    amountStr: string,
     userAddress: string | undefined,
     poolId: string,
   ): Promise<SwapEstimate> {
@@ -276,10 +276,7 @@ export class EstimatesService {
         name: 'Swapper',
         value: userAddress || '0000000000000000000000000000000000000000000',
       },
-      {
-        name: 'Quantity',
-        value: amount.toString(), // Use raw amount, no conversion
-      },
+      { name: 'Quantity', value: this.normalizeRaw(amountStr) },
     ];
 
     const result = await this.retryDryrun(
@@ -309,7 +306,7 @@ export class EstimatesService {
   private async calculatePermaswapSwap(
     fromTokenId: string,
     toTokenId: string,
-    amount: number,
+    amountStr: string,
     poolId: string,
   ): Promise<SwapEstimate> {
     const result = await this.retryDryrun(
@@ -320,7 +317,11 @@ export class EstimatesService {
       'Permaswap',
     );
 
-    const permaswapOutput = this.estimateSwap(result, amount, toTokenId);
+    const permaswapOutput = this.estimateSwap(
+      result,
+      Number(this.normalizeRaw(amountStr)),
+      toTokenId,
+    );
 
     const outRaw = this.toNonExponentialString(permaswapOutput.outputAmount);
     const fee = permaswapOutput.outputAmount * 0.0005;
@@ -619,5 +620,13 @@ export class EstimatesService {
       // Negative exponent: number < 1; floor to 0 in raw integer context
       return '0';
     }
+  }
+
+  private normalizeRaw(raw: string): string {
+    // Accept plain integer strings; if exponential or non-digit, try to sanitize
+    if (/^[0-9]+$/.test(raw)) return raw.replace(/^0+/, '') || '0';
+    // Fallback: convert from number string (possibly scientific) to integer string
+    const asNumber = Number(raw);
+    return this.toNonExponentialString(asNumber);
   }
 }

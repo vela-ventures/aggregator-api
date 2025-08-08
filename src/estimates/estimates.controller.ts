@@ -32,7 +32,7 @@ export class EstimatesController {
         routes,
         fromTokenId,
         toTokenId,
-        parseFloat(amount),
+        amount,
         userAddress,
       );
 
@@ -72,7 +72,7 @@ export class EstimatesController {
         routes,
         fromTokenId,
         toTokenId,
-        parseFloat(amount),
+        amount,
         userAddress,
       );
 
