@@ -4,7 +4,7 @@ import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 export class HealthController {
   @Get()
   async checkHealth() {
-    const apiUrl = process.env.API_URL;
+    const apiUrl = 'http://100.120.104.106:3000';
 
     if (!apiUrl) {
       throw new HttpException(

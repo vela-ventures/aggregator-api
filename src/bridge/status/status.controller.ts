@@ -10,7 +10,7 @@ import {
 export class StatusController {
   @Get(':txId')
   async getBridgeEventStatus(@Param('txId') txId: string) {
-    const apiUrl = process.env.API_URL;
+    const apiUrl = 'http://100.120.104.106:3000';
 
     if (!apiUrl) {
       throw new HttpException(
