@@ -96,6 +96,14 @@ export const DUMDUM_TOKEN = {
   processId: 'jtGHIv6MRIwUSlxVUTDwX7X0gYEGKQynIqvkelIOdL4',
 };
 
+export const USDA_TOKEN = {
+  name: 'Astro USD',
+  ticker: 'USDA',
+  denomination: 12,
+  logo: 'seXozJrsP0OgI0gvAnr8zmfxiHHb5iSlI9wMI8SdamE',
+  processId: 'FBt9A5GA_KXMMSxA2DJ0xZbAq8sLLU2ak-YJe9zDvg8',
+};
+
 export const AVAILABLE_TOKENS = [
   WAR_TOKEN,
   AO_TOKEN,
@@ -109,4 +117,5 @@ export const AVAILABLE_TOKENS = [
   GAME_TOKEN,
   PI_TOKEN,
   DUMDUM_TOKEN,
+  USDA_TOKEN,
 ];
