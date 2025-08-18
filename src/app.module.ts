@@ -8,6 +8,7 @@ import { OrdersModule } from './orders/orders.module';
 import { MessagesModule } from './messages/messages.module';
 import { ConfigModule } from '@nestjs/config';
 import { AppConfigModule } from './app-config';
+import { BridgeModule } from './bridge/bridge.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AppConfigModule } from './app-config';
     OrdersModule,
     MessagesModule,
     AppConfigModule,
+    BridgeModule,
   ],
   controllers: [AppController],
   providers: [],
