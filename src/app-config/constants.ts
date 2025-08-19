@@ -104,6 +104,24 @@ export const USDA_TOKEN = {
   processId: 'FBt9A5GA_KXMMSxA2DJ0xZbAq8sLLU2ak-YJe9zDvg8',
 };
 
+export const VAR_TOKEN = {
+  ticker: 'vAR',
+  name: 'Vento Arweave',
+  processId: 'y-p7CPhs6JMUStAuE4KeTnMXN7qYBvEi2hiBFk8ZhjM',
+  logo: 'XQKXtuxDGDn13z0JBqYvbkNXPu3Y3aE1WaK2XftQ3cA',
+  chainLabel: 'AO',
+  denomination: 12,
+};
+
+export const VUSDC_TOKEN = {
+  ticker: 'vUSDC',
+  name: 'Vento USDC',
+  processId: 'cxkFiGP89fEKOvbvl9SLs1lEaw0L-DWJiqQOuDPeDG8',
+  logo: 'DbT_EMed2vx4MR7N03YJYLSNeNBvuSgIzjybw8TOqMg',
+  chainLabel: 'AO',
+  denomination: 6,
+};
+
 export const AVAILABLE_TOKENS = [
   AO_TOKEN,
   ARIO_TOKEN,
@@ -114,4 +132,6 @@ export const AVAILABLE_TOKENS = [
   PI_TOKEN,
   DUMDUM_TOKEN,
   USDA_TOKEN,
+  VAR_TOKEN,
+  VUSDC_TOKEN,
 ];
