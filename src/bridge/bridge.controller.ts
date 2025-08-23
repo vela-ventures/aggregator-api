@@ -6,8 +6,10 @@ export class BridgeController {
   constructor() {}
 
   @Get()
-  async getBridgeInfo() {
-    const result = await axios.get('http://100.120.104.106:3000');
+  async getConfig() {
+    const result = await axios.get(
+      'http://100.120.104.106:3000/statistics/config',
+    );
     return result.data;
   }
 }
