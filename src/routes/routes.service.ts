@@ -24,8 +24,8 @@ export class RoutesService {
 
   // Common intermediate tokens for multi-hop routing
   private readonly intermediateTokenIds: string[] = [
-    'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
-    // '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
+    // 'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
+    '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
   ];
 
   constructor(private readonly poolsService: PoolsService) {}
