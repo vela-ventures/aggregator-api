@@ -12,4 +12,12 @@ export class BridgeController {
     );
     return result.data;
   }
+
+  @Get('/tvl')
+  async getTvl() {
+    const result = await axios.get(
+      'http://100.120.104.106:3000/statistics/tvl',
+    );
+    return result.data;
+  }
 }
