@@ -122,8 +122,49 @@ export const VUSDC_TOKEN = {
   denomination: 6,
 };
 
+export const APUS_TOKEN = {
+  ticker: 'APUS',
+  name: 'Apus.Network',
+  processId: 'mqBYxpDsolZmJyBdTK8TJp_ftOuIUXVYcSQ8MYZdJg0',
+  logo: 'sixqgAh5MEevkhwH4JuCYwmumaYMTOBi3N5_N1GQ6Uc',
+  chainLabel: 'AO',
+  denomination: 12,
+};
+
+export const VDAI_TOKEN = {
+  ticker: 'vDAI',
+  name: 'Vento DAI',
+  processId: 'Q5Qk5W_AOUou2nRu1RlEpfr8yzKmWJ98tQb8QEyYqx4',
+  logo: '0hn3-PiE45LzIr9fYxSEXrQu8qk9arXt-FsVoN98grw',
+  chainLabel: 'AO',
+  denomination: 18,
+};
+
+export const VETH_TOKEN = {
+  ticker: 'vETH',
+  name: 'Vento ETH',
+  processId: 'SGUZMZ1toA4k5wlDNyDtHQThf1SEAOLNwiE8TzsnSgw',
+  logo: 'zAQeInmLoCwtHfWzAebYWyrdb8Yh-s5H8_b4Ad2egSc',
+  chainLabel: 'AO',
+  denomination: 18,
+};
+
+export const VUSDT_TOKEN = {
+  ticker: 'vUSDT',
+  name: 'Vento USDT',
+  processId: 'w1Dhib3MHHEJhyi2VKoz-5zHi-0XaQAdtTxpkrXfyaM',
+  logo: 'OfWMrjFSdiBf7gbllJJTJzw3WcrH_ZO68rEb49f9h94',
+  chainLabel: 'AO',
+  denomination: 6,
+};
+
 export const AVAILABLE_TOKENS = [
   AO_TOKEN,
+  VAR_TOKEN,
+  VUSDC_TOKEN,
+  VUSDT_TOKEN,
+  VDAI_TOKEN,
+  VETH_TOKEN,
   ARIO_TOKEN,
   TRUNK_TOKEN,
   LLAMA_TOKEN,
@@ -132,6 +173,5 @@ export const AVAILABLE_TOKENS = [
   PI_TOKEN,
   DUMDUM_TOKEN,
   USDA_TOKEN,
-  VAR_TOKEN,
-  VUSDC_TOKEN,
+  APUS_TOKEN,
 ];
