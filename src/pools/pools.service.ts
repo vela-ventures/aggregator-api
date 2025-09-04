@@ -35,7 +35,7 @@ export class PoolsService {
   private botegaPoolsCache: BotegaPool[] = [];
   private permaswapPoolsCache: PermaswapPool[] = [];
   private lastPoolsFetch = 0;
-  private readonly CACHE_DURATION = 5 * 60 * 1000;
+  private readonly CACHE_DURATION = 15 * 60 * 1000;
 
   async getAllPools(forceRefresh = false): Promise<PoolData> {
     const now = Date.now();
