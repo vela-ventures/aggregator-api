@@ -26,6 +26,7 @@ export class RoutesService {
   private readonly intermediateTokenIds: string[] = [
     // 'xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10',
     '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
+    'FBt9A5GA_KXMMSxA2DJ0xZbAq8sLLU2ak-YJe9zDvg8',
   ];
 
   constructor(private readonly poolsService: PoolsService) {}
