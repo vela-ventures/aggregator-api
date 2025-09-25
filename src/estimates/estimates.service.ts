@@ -16,6 +16,8 @@ interface SwapEstimate {
   outRaw?: string;
 }
 
+const AGGREGATOR_FEE_RATE = 0.01;
+
 @Injectable()
 export class EstimatesService {
   private readonly logger = new Logger(EstimatesService.name);
@@ -38,10 +40,12 @@ export class EstimatesService {
             route.pools[0].poolId,
             route.dex,
           );
+          const baseOutRaw =
+            estimate.outRaw ?? this.toNonExponentialString(estimate.out);
+          const adjustedOutRaw = this.applyAggregatorFeeToRaw(baseOutRaw);
           return {
             ...route,
-            estimatedOutput:
-              estimate.outRaw ?? this.toNonExponentialString(estimate.out),
+            estimatedOutput: adjustedOutRaw,
             estimatedFee:
               estimate.feeRaw ?? this.toNonExponentialString(estimate.fee),
           };
@@ -64,11 +68,14 @@ export class EstimatesService {
             route.dex,
           );
 
+          const baseSecondOutRaw =
+            secondEstimate.outRaw ??
+            this.toNonExponentialString(secondEstimate.out);
+          const adjustedSecondOutRaw =
+            this.applyAggregatorFeeToRaw(baseSecondOutRaw);
           return {
             ...route,
-            estimatedOutput:
-              secondEstimate.outRaw ??
-              this.toNonExponentialString(secondEstimate.out),
+            estimatedOutput: adjustedSecondOutRaw,
             estimatedFee:
               secondEstimate.feeRaw ??
               this.toNonExponentialString(secondEstimate.fee),
@@ -121,7 +128,7 @@ export class EstimatesService {
           const estimate = await this.calculateReverseEstimate(
             fromTokenId,
             toTokenId,
-            desiredOutput,
+            desiredOutput / (1 - AGGREGATOR_FEE_RATE),
             route.pools[0].poolId,
             route.dex,
             userAddress,
@@ -137,7 +144,7 @@ export class EstimatesService {
           const secondEstimate = await this.calculateReverseEstimate(
             route.intermediateTokenId,
             toTokenId,
-            desiredOutput,
+            desiredOutput / (1 - AGGREGATOR_FEE_RATE),
             route.pools[1].poolId,
             route.dex,
             userAddress,
@@ -156,11 +163,17 @@ export class EstimatesService {
             ...route,
             estimatedOutput: Math.floor(desiredOutput).toString(),
             requiredInput: Math.floor(firstEstimate.inputRequired).toString(),
-            estimatedFee: Math.floor(firstEstimate.fee + secondEstimate.fee).toString(),
+            estimatedFee: Math.floor(
+              firstEstimate.fee + secondEstimate.fee,
+            ).toString(),
             inputWithFee: Math.floor(firstEstimate.inputWithFee).toString(),
-            intermediateInputRequired: Math.floor(secondEstimate.inputRequired).toString(),
+            intermediateInputRequired: Math.floor(
+              secondEstimate.inputRequired,
+            ).toString(),
             intermediateEstimatedFee: Math.floor(secondEstimate.fee).toString(),
-            intermediateOutput: Math.floor(secondEstimate.inputWithFee).toString(),
+            intermediateOutput: Math.floor(
+              secondEstimate.inputWithFee,
+            ).toString(),
           };
         }
         return null;
@@ -615,7 +628,10 @@ export class EstimatesService {
       const zeros = exp - fracPart.length;
       return zeros >= 0
         ? (digits + '0'.repeat(zeros)).replace(/^0+/, '') || '0'
-        : (intPart + fracPart.slice(0, fracPart.length + exp)).replace(/^0+/, '') || '0';
+        : (intPart + fracPart.slice(0, fracPart.length + exp)).replace(
+            /^0+/,
+            '',
+          ) || '0';
     } else {
       // Negative exponent: number < 1; floor to 0 in raw integer context
       return '0';
@@ -628,5 +644,11 @@ export class EstimatesService {
     // Fallback: convert from number string (possibly scientific) to integer string
     const asNumber = Number(raw);
     return this.toNonExponentialString(asNumber);
+  }
+
+  private applyAggregatorFeeToRaw(rawStr: string): string {
+    const num = Number(rawStr) || 0;
+    const adjusted = Math.floor(num * (1 - AGGREGATOR_FEE_RATE));
+    return this.toNonExponentialString(adjusted);
   }
 }
