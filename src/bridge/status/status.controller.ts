@@ -8,6 +8,95 @@ import {
 
 @Controller('bridge/status')
 export class StatusController {
+  @Get('/ariotokendelay')
+  async getARIOTokenDelay() {
+    const gqlUrl = 'https://arweave.net/graphql';
+
+    const query = `
+      query ($cursor: String) {
+        transactions(
+          sort: HEIGHT_DESC
+          first: 1
+          after: $cursor
+          tags: [
+            { name: "From-Process", values: ["qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE"] }
+            { name: "Data-Protocol", values: ["ao"] }
+            { name: "Action", values: ["Credit-Notice"] }
+          ]
+        ) {
+          edges {
+            cursor
+            node {
+              id
+              block { timestamp height }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch(gqlUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: { cursor: null },
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!response.ok) {
+        throw new HttpException(
+          `GraphQL API responded with status ${response.status}`,
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+
+      const data = await response.json();
+
+      if (data.errors) {
+        throw new HttpException(
+          {
+            error: 'GraphQL query failed',
+            details: data.errors,
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const edges = data.data?.transactions?.edges;
+      if (!edges || edges.length === 0) {
+        throw new HttpException('No transactions found', HttpStatus.NOT_FOUND);
+      }
+
+      const timestamp = edges[0].node.block?.timestamp;
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeSince = currentTime - timestamp;
+
+      return {
+        delay: timeSince,
+        timestamp,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'GraphQL API is not available';
+
+      throw new HttpException(
+        {
+          error: errorMessage,
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
   @Get(':txId')
   async getBridgeEventStatus(@Param('txId') txId: string) {
     const apiUrl = 'http://100.120.104.106:3000';
@@ -58,7 +147,10 @@ export class StatusController {
   }
 
   @Get(':chain/:txId')
-  async getBridgeEventStatusNetwork(@Param('chain') chain: string, @Param('txId') txId: string) {
+  async getBridgeEventStatusNetwork(
+    @Param('chain') chain: string,
+    @Param('txId') txId: string,
+  ) {
     const apiUrl = 'http://100.120.104.106:3000';
 
     if (!apiUrl) {
