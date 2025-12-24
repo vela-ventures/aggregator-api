@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { PoolsModule } from './pools/pools.module';
 import { RoutesModule } from './routes/routes.module';
@@ -15,6 +16,7 @@ import { BridgeModule } from './bridge';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     PoolsModule,
     RoutesModule,
     EstimatesModule,
