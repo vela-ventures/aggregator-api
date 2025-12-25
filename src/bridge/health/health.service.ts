@@ -46,6 +46,7 @@ export class HealthService {
     ['aoTokenInfo', 0],
     ['aoTokenBalance', 0],
   ]);
+  private checksWithActiveAlerts: Set<CheckType> = new Set();
 
   constructor(private readonly slackService: SlackService) {}
 
@@ -164,12 +165,18 @@ export class HealthService {
           this.logger.log(
             `${name} check recovered after ${previousFailures} failure(s)`,
           );
+
+          if (this.checksWithActiveAlerts.has(type)) {
+            this.checksWithActiveAlerts.delete(type);
+            await this.sendRecoveryAlert(name, result);
+          }
         }
       } else {
         const currentFailures = (this.consecutiveFailures.get(type) || 0) + 1;
         this.consecutiveFailures.set(type, currentFailures);
 
         if (currentFailures === 3) {
+          this.checksWithActiveAlerts.add(type);
           await this.sendFailureAlert(name, result);
         }
       }
@@ -189,6 +196,25 @@ export class HealthService {
     }
   }
 
+  private async sendRecoveryAlert(
+    checkName: string,
+    result: HealthCheckResult,
+  ) {
+    try {
+      const message = this.formatRecoveryAlert(checkName, result);
+      await this.slackService.sendAlert({
+        text: message,
+        type: alertTypes.SUCCESS as AlertType,
+      });
+      this.logger.log(`Slack recovery alert sent for ${checkName}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send Slack recovery alert for ${checkName}:`,
+        error,
+      );
+    }
+  }
+
   private formatFailureAlert(
     checkName: string,
     result: HealthCheckResult,
@@ -196,6 +222,19 @@ export class HealthService {
     const lines = [
       `Bridge Health Check Failed: ${checkName}`,
       result.error ? `Error: ${result.error}` : 'Unknown error',
+      `Response Time: ${result.responseTime}ms`,
+      `Timestamp: ${result.timestamp}`,
+    ];
+    return lines.join('\n');
+  }
+
+  private formatRecoveryAlert(
+    checkName: string,
+    result: HealthCheckResult,
+  ): string {
+    const lines = [
+      `Bridge Health Check Recovered: ${checkName}`,
+      'Previously failing, now healthy.',
       `Response Time: ${result.responseTime}ms`,
       `Timestamp: ${result.timestamp}`,
     ];
