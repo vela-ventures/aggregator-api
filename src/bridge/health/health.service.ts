@@ -23,7 +23,7 @@ export interface HealthStatus {
   lastChecked: string;
 }
 
-const TEST_ADDRESS = 'EvymyYyJOvSxTkcFO-tnFnY_kNEJV_vovocH7o-2pXw';
+const TEST_ADDRESS = 'OxQoZQVQMq4ZkscGkUfLMy1XE0fY6Ljn0Z8EfI4Cn78';
 
 const ARIO_PROCESS_ID = 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE';
 const AO_PROCESS_ID = '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc';
@@ -165,11 +165,11 @@ export class HealthService {
           this.logger.log(
             `${name} check recovered after ${previousFailures} failure(s)`,
           );
+        }
 
-          if (this.checksWithActiveAlerts.has(type)) {
-            this.checksWithActiveAlerts.delete(type);
-            await this.sendRecoveryAlert(name, result);
-          }
+        if (this.checksWithActiveAlerts.has(type)) {
+          this.checksWithActiveAlerts.delete(type);
+          await this.sendRecoveryAlert(name, result);
         }
       } else {
         const currentFailures = (this.consecutiveFailures.get(type) || 0) + 1;
@@ -220,7 +220,7 @@ export class HealthService {
     result: HealthCheckResult,
   ): string {
     const lines = [
-      `Bridge Health Check Failed: ${checkName}`,
+      `Bridge Dryrun Check Failed: ${checkName}`,
       result.error ? `Error: ${result.error}` : 'Unknown error',
       `Response Time: ${result.responseTime}ms`,
       `Timestamp: ${result.timestamp}`,
@@ -233,12 +233,71 @@ export class HealthService {
     result: HealthCheckResult,
   ): string {
     const lines = [
-      `Bridge Health Check Recovered: ${checkName}`,
+      `Bridge Dryrun Check Recovered: ${checkName}`,
       'Previously failing, now healthy.',
       `Response Time: ${result.responseTime}ms`,
       `Timestamp: ${result.timestamp}`,
     ];
     return lines.join('\n');
+  }
+
+  private async retryDryrun(
+    params: {
+      dryrunFn: (params: {
+        process: string;
+        tags: { name: string; value: string }[];
+      }) => Promise<DryrunResult>;
+      process: string;
+      tags: { name: string; value: string }[];
+    },
+    checkName: string,
+    maxRetries: number = 3,
+  ): Promise<DryrunResult> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        this.logger.debug(
+          `${checkName} dryrun attempt ${attempt}/${maxRetries} for process ${params.process}`,
+        );
+
+        const result = await Promise.race([
+          params.dryrunFn({
+            process: params.process,
+            tags: params.tags,
+          }),
+          new Promise<DryrunResult>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 10000),
+          ),
+        ]);
+
+        return result;
+      } catch (error) {
+        this.logger.debug(
+          `${checkName} dryrun attempt ${attempt}/${maxRetries} failed`,
+        );
+
+        if (
+          error instanceof SyntaxError &&
+          error.message.includes("Unexpected token '<'")
+        ) {
+          this.logger.debug(
+            `AO Gateway returned HTML instead of JSON (likely overloaded/rate-limited)`,
+          );
+        }
+
+        if (attempt === maxRetries) {
+          this.logger.debug(
+            `All ${maxRetries} attempts failed for ${checkName} dryrun`,
+          );
+          throw error;
+        }
+
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        this.logger.debug(`Waiting ${delay}ms before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    throw new Error('Retry loop completed without result');
   }
 
   async checkArioTokenInfo(): Promise<HealthCheckResult> {
@@ -251,15 +310,14 @@ export class HealthService {
         MODE: ARIO_MODE,
       });
 
-      const result = (await Promise.race([
-        arioDryrun({
+      const result = await this.retryDryrun(
+        {
+          dryrunFn: arioDryrun,
           process: ARIO_PROCESS_ID,
           tags: [{ name: 'Action', value: 'Info' }],
-        }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 5000),
-        ),
-      ])) as DryrunResult;
+        },
+        'ARIO Token Info',
+      );
 
       const responseTime = Date.now() - startTime;
 
@@ -326,18 +384,17 @@ export class HealthService {
         MODE: ARIO_MODE,
       });
 
-      const result = (await Promise.race([
-        arioDryrun({
+      const result = await this.retryDryrun(
+        {
+          dryrunFn: arioDryrun,
           process: ARIO_PROCESS_ID,
           tags: [
             { name: 'Action', value: 'Balance' },
             { name: 'Recipient', value: TEST_ADDRESS },
           ],
-        }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 5000),
-        ),
-      ])) as DryrunResult;
+        },
+        'ARIO Token Balance',
+      );
 
       const responseTime = Date.now() - startTime;
 
@@ -392,16 +449,22 @@ export class HealthService {
     const startTime = Date.now();
     const timestamp = new Date().toISOString();
 
+    const { dryrun: aoDryrun } = connect({
+      MU_URL: 'https://mu.ao-testnet.xyz',
+      CU_URL: 'https://cu.ao-testnet.xyz',
+      GATEWAY_URL: 'https://arweave.net',
+      MODE: 'legacy',
+    });
+
     try {
-      const result = (await Promise.race([
-        dryrun({
+      const result = await this.retryDryrun(
+        {
+          dryrunFn: aoDryrun,
           process: AO_PROCESS_ID,
           tags: [{ name: 'Action', value: 'Info' }],
-        }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 5000),
-        ),
-      ])) as DryrunResult;
+        },
+        'AO Token Info',
+      );
 
       const responseTime = Date.now() - startTime;
       if (!result.Messages || !result.Messages[0]) {
@@ -414,6 +477,7 @@ export class HealthService {
       }
 
       const tags = result.Messages[0].Tags || [];
+      console.log('tags', tags);
       const requiredTags = ['Name', 'Ticker', 'Logo', 'Denomination'];
       const missingTags = requiredTags.filter(
         (tag) => !tags.some((t) => t.name === tag),
@@ -461,19 +525,25 @@ export class HealthService {
     const startTime = Date.now();
     const timestamp = new Date().toISOString();
 
+    const { dryrun: aoDryrun } = connect({
+      MU_URL: 'https://mu.ao-testnet.xyz',
+      CU_URL: 'https://cu.ao-testnet.xyz',
+      GATEWAY_URL: 'https://arweave.net',
+      MODE: 'legacy',
+    });
+
     try {
-      const result = (await Promise.race([
-        dryrun({
+      const result = await this.retryDryrun(
+        {
+          dryrunFn: aoDryrun,
           process: AO_PROCESS_ID,
           tags: [
             { name: 'Action', value: 'Balance' },
             { name: 'Recipient', value: TEST_ADDRESS },
           ],
-        }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 5000),
-        ),
-      ])) as DryrunResult;
+        },
+        'AO Token Balance',
+      );
 
       const responseTime = Date.now() - startTime;
 
