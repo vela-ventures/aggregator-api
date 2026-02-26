@@ -146,6 +146,47 @@ export class StatusController {
     }
   }
 
+  @Get(':chain/:txId/retry')
+  async retryBridgeEvent(
+    @Param('chain') chain: string,
+    @Param('txId') txId: string,
+  ) {
+    const apiUrl = 'http://100.120.104.106:3000';
+
+    try {
+      const response = await fetch(
+        `${apiUrl}/status/${chain}/${txId}/retry`,
+        {
+          method: 'GET',
+          signal: AbortSignal.timeout(30000),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new HttpException(
+          data.message || data.error || `Retry failed with status ${response.status}`,
+          response.status,
+        );
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'API is not available';
+
+      throw new HttpException(
+        { error: errorMessage },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
   @Get(':chain/:txId')
   async getBridgeEventStatusNetwork(
     @Param('chain') chain: string,
