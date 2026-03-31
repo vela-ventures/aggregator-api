@@ -1,7 +1,10 @@
 import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
+import { HealthService } from './health.service';
 
 @Controller('bridge/health')
 export class HealthController {
+  constructor(private readonly healthService: HealthService) {}
+
   @Get()
   async checkHealth() {
     const apiUrl = 'http://100.120.104.106:3000';
@@ -35,5 +38,10 @@ export class HealthController {
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
+  }
+
+  @Get('dryruns')
+  getDryrunHealthStatus() {
+    return this.healthService.getHealthStatus();
   }
 }
